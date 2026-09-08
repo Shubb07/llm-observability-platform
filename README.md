@@ -29,7 +29,8 @@ llm-observability-platform/
 
 ## Stack
 
-- **SDK:** Python (pip-installable, async, provider-agnostic wrapper) — not started
+- **SDK:** Python — **built**: OpenAI/Anthropic auto-instrumentation, manual `trace()` for
+  other providers, background batching with retry/backoff
 - **Backend:** FastAPI + SQLAlchemy + PostgreSQL — **built**: auth, projects, trace
   ingestion/query. Celery/Redis for background workers deferred until evaluation volume
   needs independently scalable workers (see `docs/HLD.md` → Scalability)
@@ -38,6 +39,6 @@ llm-observability-platform/
 
 ## Status
 
-Backend v1 is implemented and tested (see [`backend/README.md`](backend/README.md) for how
-to run it). SDK and dashboard have not been started. See
-[`docs/HLD.md`](docs/HLD.md#build-order) for the planned build order.
+Backend v1 and the SDK are implemented and tested (see [`backend/README.md`](backend/README.md)
+and [`sdk/README.md`](sdk/README.md) for how to run each). Dashboard has not been started.
+See [`docs/HLD.md`](docs/HLD.md#build-order) for the planned build order.
