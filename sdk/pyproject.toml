@@ -1,0 +1,21 @@
+[build-system]
+requires = ["setuptools>=68"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "llm-observability-sdk"
+version = "0.1.0"
+description = "Python SDK for the LLM Observability Platform - wraps LLM calls and reports telemetry."
+requires-python = ">=3.9"
+dependencies = [
+    "requests>=2.31",
+]
+
+[project.optional-dependencies]
+dev = ["pytest>=8.3"]
+
+[tool.setuptools.packages.find]
+include = ["llm_observability_sdk*"]
+
+[tool.pytest.ini_options]
+pythonpath = ["."]
