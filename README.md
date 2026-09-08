@@ -12,8 +12,9 @@ B.Tech CSE (AI/ML), Batch 2025–2029
 A telemetry platform for LLM-powered applications: a Python SDK captures every LLM call
 (prompt, completion, tokens, latency, cost), a backend ingests and stores traces, background
 workers run quality evaluations and alert checks, and a dashboard surfaces all of it to
-developers and AI teams. See [`docs/PRD.pdf`](docs/PRD.pdf) and [`docs/HLD.pdf`](docs/HLD.pdf)
-for the full product requirements and architecture.
+developers and AI teams. See [`docs/PRD.pdf`](docs/PRD.pdf) for product requirements and
+[`docs/HLD.md`](docs/HLD.md) for the current architecture and build order
+(supersedes the original [`docs/HLD.pdf`](docs/HLD.pdf) draft).
 
 ## Repository layout
 
@@ -26,15 +27,17 @@ llm-observability-platform/
 └── docs/         PRD, HLD, and other design docs
 ```
 
-## Planned stack
+## Stack
 
-- **SDK:** Python (pip-installable, async, provider-agnostic wrapper)
-- **Backend:** FastAPI + SQLAlchemy + PostgreSQL, with Celery/Redis for background workers
-  once evaluation volume needs independently scalable workers (see HLD → Scalability)
-- **Dashboard:** React
-- **Auth:** JWT for dashboard users, API keys for SDK → backend ingestion
+- **SDK:** Python (pip-installable, async, provider-agnostic wrapper) — not started
+- **Backend:** FastAPI + SQLAlchemy + PostgreSQL — **built**: auth, projects, trace
+  ingestion/query. Celery/Redis for background workers deferred until evaluation volume
+  needs independently scalable workers (see `docs/HLD.md` → Scalability)
+- **Dashboard:** React (Vite) — not started
+- **Auth:** JWT for dashboard users, API keys for SDK → backend ingestion — **built**
 
 ## Status
 
-Repository scaffold only — implementation has not started yet. See each subfolder's README
-for what belongs there.
+Backend v1 is implemented and tested (see [`backend/README.md`](backend/README.md) for how
+to run it). SDK and dashboard have not been started. See
+[`docs/HLD.md`](docs/HLD.md#build-order) for the planned build order.
