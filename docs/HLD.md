@@ -26,15 +26,15 @@ names a real technology and, where built, a real file.
 
 ```
 Developer's app
-   │  wrapped call
-   ▼
-Python SDK  ──batched traces──▶  FastAPI backend  ──write──▶  PostgreSQL
-   ▲                                  │  query                    │
-   └──views───────────────────────  React dashboard ◀─────────────┘
-                                       │
-                              (Phase 4+) background workers
-                              ──evaluate──▶ Evaluation Engine
-                              ──check rules──▶ Alerting ──▶ Email/Webhook
+   |  wrapped call
+   v
+Python SDK  --batched traces-->  FastAPI backend  --write-->  PostgreSQL
+   ^                                  |  query                    |
+   +--views----------------------  React dashboard <-------------+
+                                      |
+                             (Phase 4+) background workers
+                             --evaluate--> Evaluation Engine
+                             --check rules--> Alerting --> Email/Webhook
 ```
 
 ### Components
@@ -57,7 +57,7 @@ Python SDK  ──batched traces──▶  FastAPI backend  ──write──▶
 Phased to match the PRD's Must → Should → Could priorities, and so each phase produces
 something the next phase needs (no phase depends on something not yet built).
 
-1. **Backend v1** ✅ — auth, projects (API keys, RBAC), trace ingestion + query. This exists
+1. **Backend v1 (built)** — auth, projects (API keys, RBAC), trace ingestion + query. This exists
    so every later phase has something real to talk to.
 2. **SDK** — wraps LLM calls, posts to the ingestion endpoint built in step 1. Smallest
    PRD Must-have not yet done; unblocks real trace data for everything after it.
