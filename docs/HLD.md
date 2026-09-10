@@ -107,9 +107,10 @@ Unchanged from v1.0:
 
 - SDK buffers traces locally and retries with backoff if the backend is unreachable —
   no silent data loss on the client side (Phase 2 requirement).
-- Trace ingestion should be made idempotent before the SDK ships — re-sent batches must not
-  create duplicate traces. **Not yet implemented**: the current `POST /api/v1/traces` has no
-  idempotency key; add one (e.g. a client-generated trace ID) alongside the SDK in Phase 2.
+- Trace ingestion is idempotent — **built**. The SDK generates a `client_trace_id` once per
+  event (not per HTTP attempt), and the backend skips any trace whose `client_trace_id`
+  already exists for that project, backed by a unique constraint for the concurrent-request
+  case. Verified against real Postgres: resending an identical batch stores it once, not twice.
 - Evaluation and alerting failures must not affect trace storage — a trace persists regardless
   of whether evaluation succeeds (design constraint for Phase 5, not yet applicable).
 - Evaluation job status (`PENDING`, `RUNNING`, `COMPLETED`, `FAILED`) tracked once the

@@ -30,3 +30,13 @@ Add an entry each day so end-of-day reporting is just copying this section. Form
   (background transport with batching/retry/backoff, cost estimation, manual `trace()`,
   OpenAI + Anthropic auto-instrumentation) — verified end-to-end against the live backend
 - **Sagar:** _pending_
+
+### 2026-09-10
+
+- **Shuban:** closed the idempotency gap flagged in the HLD's Reliability section — trace
+  ingestion now dedups on a `client_trace_id` the SDK generates once per event, so a retried
+  batch (network blip, lost response) can't create a duplicate trace. Backend: unique
+  constraint + dedup check in `POST /api/v1/traces`. SDK: `TraceEvent` now carries a stable
+  id across retries. 5 new tests (19 backend / 20 SDK total, all passing); verified live
+  against real Postgres (send same batch twice → stored once, not twice)
+- **Sagar:** _pending_
