@@ -15,6 +15,9 @@ class TraceIn(BaseModel):
     status: str = "success"
     error_message: str | None = None
     tags: dict = Field(default_factory=dict)
+    # Set by the SDK so a retried batch is a no-op instead of a duplicate.
+    # Optional because manual API callers (e.g. via /docs) won't set it.
+    client_trace_id: str | None = None
 
 
 class TraceBatchIn(BaseModel):
@@ -24,6 +27,7 @@ class TraceBatchIn(BaseModel):
 class TraceOut(BaseModel):
     id: str
     project_id: str
+    client_trace_id: str | None
     model: str
     provider: str
     prompt: str

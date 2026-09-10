@@ -1,5 +1,6 @@
 from fastapi import APIRouter, Depends, HTTPException, Query, status as http_status
 from sqlalchemy import func
+from sqlalchemy.exc import IntegrityError
 from sqlalchemy.orm import Session
 
 from app.api.deps import get_project_by_api_key, get_project_membership
@@ -17,10 +18,41 @@ def ingest_traces(
     project: Project = Depends(get_project_by_api_key),
     db: Session = Depends(get_db),
 ):
-    traces = [Trace(project_id=project.id, **trace.model_dump()) for trace in payload.traces]
-    db.add_all(traces)
-    db.commit()
-    return {"ingested": len(traces)}
+    # A retried batch (SDK retries on network error / 5xx) resends the same
+    # client_trace_id values - skip any that are already stored instead of
+    # inserting duplicates. Traces without a client_trace_id (e.g. sent
+    # manually) always insert, since there's nothing to de-duplicate against.
+    incoming_client_ids = [t.client_trace_id for t in payload.traces if t.client_trace_id is not None]
+    existing_client_ids: set[str] = set()
+    if incoming_client_ids:
+        existing_client_ids = {
+            row[0]
+            for row in db.query(Trace.client_trace_id)
+            .filter(
+                Trace.project_id == project.id,
+                Trace.client_trace_id.in_(incoming_client_ids),
+            )
+            .all()
+        }
+
+    new_traces = [
+        Trace(project_id=project.id, **trace_in.model_dump())
+        for trace_in in payload.traces
+        if trace_in.client_trace_id is None or trace_in.client_trace_id not in existing_client_ids
+    ]
+    skipped = len(payload.traces) - len(new_traces)
+
+    db.add_all(new_traces)
+    try:
+        db.commit()
+    except IntegrityError:
+        # Lost the race: a concurrent request inserted one of these
+        # client_trace_ids between our check and this commit. Safe to treat
+        # the whole attempted insert as already-delivered rather than 500.
+        db.rollback()
+        return {"ingested": 0, "skipped_duplicates": len(payload.traces)}
+
+    return {"ingested": len(new_traces), "skipped_duplicates": skipped}
 
 
 @router.get("/projects/{project_id}/traces", response_model=TraceListOut)

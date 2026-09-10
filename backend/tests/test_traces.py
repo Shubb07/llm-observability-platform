@@ -60,6 +60,42 @@ def test_ingest_traces_stores_batch(client, project):
     assert response.json()["ingested"] == 2
 
 
+def test_ingest_traces_is_idempotent_on_client_trace_id(client, auth_headers, project):
+    payload = {
+        "traces": [
+            {
+                "model": "gpt-4o",
+                "provider": "openai",
+                "prompt": "hi",
+                "latency_ms": 100.0,
+                "client_trace_id": "fixed-retry-id-1",
+            }
+        ]
+    }
+
+    first = client.post("/api/v1/traces", json=payload, headers={"X-API-Key": project["api_key"]})
+    assert first.status_code == 201
+    assert first.json() == {"ingested": 1, "skipped_duplicates": 0}
+
+    # Simulates the SDK retrying the same batch after a lost response.
+    retry = client.post("/api/v1/traces", json=payload, headers={"X-API-Key": project["api_key"]})
+    assert retry.status_code == 201
+    assert retry.json() == {"ingested": 0, "skipped_duplicates": 1}
+
+    listed = client.get(f"/api/v1/projects/{project['id']}/traces", headers=auth_headers)
+    assert listed.json()["total"] == 1
+
+
+def test_ingest_traces_without_client_trace_id_is_not_deduplicated(client, auth_headers, project):
+    payload = {"traces": [{"model": "gpt-4o", "provider": "openai", "prompt": "hi", "latency_ms": 100.0}]}
+
+    client.post("/api/v1/traces", json=payload, headers={"X-API-Key": project["api_key"]})
+    client.post("/api/v1/traces", json=payload, headers={"X-API-Key": project["api_key"]})
+
+    listed = client.get(f"/api/v1/projects/{project['id']}/traces", headers=auth_headers)
+    assert listed.json()["total"] == 2
+
+
 def test_list_traces_filters_by_status(client, auth_headers, project):
     payload = {
         "traces": [
