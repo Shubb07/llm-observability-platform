@@ -89,6 +89,24 @@ def test_retries_on_server_error_then_succeeds():
     transport.shutdown()
 
 
+def test_retry_resends_the_same_client_trace_id():
+    # The backend dedups on client_trace_id, so a retry only prevents a
+    # duplicate trace if it's the *same* id both times - not a freshly
+    # generated one per HTTP attempt.
+    session = FakeSession(responses=[FakeResponse(500), FakeResponse(200)])
+    transport = BackgroundTransport(
+        api_key="k", base_url="http://localhost:8000", session=session, flush_interval_seconds=0.1, max_retries=3
+    )
+    transport.enqueue(make_event())
+
+    assert wait_until(lambda: len(session.calls) == 2, timeout=5.0)
+    first_id = session.calls[0]["json"]["traces"][0]["client_trace_id"]
+    second_id = session.calls[1]["json"]["traces"][0]["client_trace_id"]
+    assert first_id == second_id
+
+    transport.shutdown()
+
+
 def test_does_not_retry_client_error():
     session = FakeSession(responses=[FakeResponse(401)])
     transport = BackgroundTransport(
