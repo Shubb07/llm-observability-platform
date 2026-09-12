@@ -43,6 +43,17 @@ def client(db_engine):
 
 
 @pytest.fixture()
+def db_session(db_engine):
+    """A raw session for tests that need to bypass the API - e.g. inserting a
+    trace with a specific created_at to test time-range filtering, which the
+    ingestion endpoint doesn't accept as input."""
+    SessionLocal = sessionmaker(autocommit=False, autoflush=False, bind=db_engine)
+    session = SessionLocal()
+    yield session
+    session.close()
+
+
+@pytest.fixture()
 def registered_user(client):
     payload = {"email": "dev@example.com", "password": "supersecret123"}
     client.post("/api/v1/auth/register", json=payload)
