@@ -40,3 +40,13 @@ Add an entry each day so end-of-day reporting is just copying this section. Form
   id across retries. 5 new tests (19 backend / 20 SDK total, all passing); verified live
   against real Postgres (send same batch twice → stored once, not twice)
 - **Sagar:** _pending_
+
+### 2026-09-12
+
+- **Shuban:** closed the other HLD-flagged gap — roles existed but were never enforced past
+  "is a member." Added project member management (`GET/POST /api/v1/projects/{id}/members`,
+  `PATCH/DELETE .../members/{user_id}`), gated writes to Admin only via a new `require_admin`
+  dependency, and blocked removing/demoting a project's last Admin so a project can't end up
+  with zero Admins. 9 new tests (28 backend total, all passing); verified live against
+  Postgres including the 403 (Viewer tries to write) and 409 (remove last Admin) cases
+- **Sagar:** _pending_

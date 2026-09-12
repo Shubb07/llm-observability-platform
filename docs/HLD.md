@@ -121,9 +121,10 @@ Unchanged from v1.0:
 - JWT (HS256) for dashboard users, 24h expiry by default (`JWT_EXPIRE_MINUTES`); API keys
   (`llmobs_<random>`) for SDK-to-backend trace ingestion — **built**.
 - Role-based access control — Admin/Member/Viewer, scoped per project via
-  `ProjectMembership` — **built** (role is currently returned to clients but not yet
-  enforced for write actions beyond membership; enforcing Viewer-cannot-write is a
-  follow-up before Phase 3 exposes any mutating dashboard actions).
+  `ProjectMembership` — **built and enforced**. Project member management
+  (`GET/POST /api/v1/projects/{id}/members`, `PATCH/DELETE .../members/{user_id}`) requires
+  Admin for any write; a project's last Admin can't be removed or demoted, so a project can
+  never end up with zero Admins. Verified live: a Viewer attempting to add a member gets 403.
 - Traces are isolated per project — every trace and query is scoped by `project_id`,
   and cross-project access is rejected at the membership-check dependency — **built**.
 - Passwords hashed with `bcrypt`, rejected outright above 72 bytes (bcrypt's own limit)

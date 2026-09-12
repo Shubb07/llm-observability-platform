@@ -7,7 +7,7 @@ the SDK or dashboard existing yet: user auth, project management, and trace inge
 
 | Folder            | Status | Responsibility |
 |-------------------|--------|-----------------|
-| `app/api/`        | Implemented | Routers: `auth.py` (register/login/me), `projects.py` (create/list/get), `traces.py` (ingest + query). `deps.py` holds JWT and API-key auth dependencies. |
+| `app/api/`        | Implemented | Routers: `auth.py` (register/login/me), `projects.py` (create/list/get + member management), `traces.py` (ingest + query). `deps.py` holds JWT, API-key, and role-check (`require_admin`) auth dependencies. |
 | `app/core/`       | Implemented | `config.py` (settings), `db.py` (SQLAlchemy engine/session), `security.py` (password hashing, JWT) |
 | `app/models/`     | Implemented | SQLAlchemy models: `User`, `Project`, `ProjectMembership`, `Trace` |
 | `app/schemas/`    | Implemented | Pydantic request/response models |
@@ -58,6 +58,10 @@ Tests run against an in-memory SQLite database — no Docker required:
 | `POST /api/v1/projects` | JWT | Create a project, returns its API key |
 | `GET /api/v1/projects` | JWT | List projects the current user belongs to |
 | `GET /api/v1/projects/{id}` | JWT | Get one project (must be a member) |
-| `POST /api/v1/traces` | API key (`X-API-Key`) | Ingest a batch of traces — this is what the SDK will call |
+| `GET /api/v1/projects/{id}/members` | JWT | List a project's members and their roles |
+| `POST /api/v1/projects/{id}/members` | JWT, Admin | Add an existing registered user to the project |
+| `PATCH /api/v1/projects/{id}/members/{user_id}` | JWT, Admin | Change a member's role |
+| `DELETE /api/v1/projects/{id}/members/{user_id}` | JWT, Admin | Remove a member — refuses to remove the last Admin |
+| `POST /api/v1/traces` | API key (`X-API-Key`) | Ingest a batch of traces (idempotent on `client_trace_id`) — this is what the SDK calls |
 | `GET /api/v1/projects/{id}/traces` | JWT | List/filter traces (by model, status), paginated |
 | `GET /api/v1/projects/{id}/traces/{trace_id}` | JWT | Get one trace's full detail |
