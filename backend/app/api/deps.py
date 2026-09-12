@@ -43,6 +43,14 @@ def get_project_membership(
     return membership
 
 
+def require_admin(
+    membership: ProjectMembership = Depends(get_project_membership),
+) -> ProjectMembership:
+    if membership.role != "ADMIN":
+        raise HTTPException(status.HTTP_403_FORBIDDEN, "Admin role required for this action")
+    return membership
+
+
 def get_project_by_api_key(
     x_api_key: str | None = Header(default=None),
     db: Session = Depends(get_db),
