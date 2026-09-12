@@ -79,6 +79,7 @@ Full table: [`../backend/README.md`](../backend/README.md) → "API summary". Th
 | List a project's members | `GET /api/v1/projects/{id}/members` | JWT |
 | List traces (with filters) | `GET /api/v1/projects/{id}/traces?status=&model=` | JWT |
 | Get one trace's full detail | `GET /api/v1/projects/{id}/traces/{trace_id}` | JWT |
+| Analytics (latency %iles, error rate, cost, tokens) | `GET /api/v1/projects/{id}/analytics?time_range=24h\|7d\|30d&group_by=model` | JWT |
 
 Every dashboard request except register/login needs the JWT in an `Authorization: Bearer
 <token>` header. Traces are always scoped to a project — there's no "see everything" view.
@@ -110,9 +111,11 @@ more data to be meaningful:
 3. **Trace Explorer** — the core view. A table of traces for a selected project (model,
    status, latency, cost, timestamp), with filters for model/status. Clicking a row opens the
    full trace detail (prompt, completion, all metadata).
-4. Stop here and check in — analytics charts, evaluation scores, and alert config all depend
-   on backend pieces that don't exist yet (Phase 4/5 in the HLD). Don't build UI for data that
-   isn't there.
+4. **Analytics view** — the `/analytics` endpoint is built (request volume, error rate,
+   p50/p95/p99 latency, tokens, cost, with a time-range picker and optional per-model
+   breakdown). Recharts for the charts. You can start this as soon as the Trace Explorer works.
+5. Stop here and check in — evaluation scores and alert config still depend on backend pieces
+   that don't exist yet (Phase 5/6 in the HLD). Don't build UI for data that isn't there.
 
 ## Where to ask when stuck
 

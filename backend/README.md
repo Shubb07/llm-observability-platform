@@ -65,3 +65,4 @@ Tests run against an in-memory SQLite database — no Docker required:
 | `POST /api/v1/traces` | API key (`X-API-Key`) | Ingest a batch of traces (idempotent on `client_trace_id`) — this is what the SDK calls |
 | `GET /api/v1/projects/{id}/traces` | JWT | List/filter traces (by model, status), paginated |
 | `GET /api/v1/projects/{id}/traces/{trace_id}` | JWT | Get one trace's full detail |
+| `GET /api/v1/projects/{id}/analytics` | JWT | Request volume, error rate, p50/p95/p99 latency, tokens, cost over `time_range` (`24h`\|`7d`\|`30d`), optional `group_by=model` |

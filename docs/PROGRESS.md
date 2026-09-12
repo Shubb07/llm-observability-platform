@@ -48,5 +48,11 @@ Add an entry each day so end-of-day reporting is just copying this section. Form
   `PATCH/DELETE .../members/{user_id}`), gated writes to Admin only via a new `require_admin`
   dependency, and blocked removing/demoting a project's last Admin so a project can't end up
   with zero Admins. 9 new tests (28 backend total, all passing); verified live against
-  Postgres including the 403 (Viewer tries to write) and 409 (remove last Admin) cases
+  Postgres including the 403 (Viewer tries to write) and 409 (remove last Admin) cases.
+  Also added `docs/DASHBOARD_ONBOARDING.md` for Sagar; enabled CORS
+  (`CORS_ALLOWED_ORIGINS`) for the dashboard's dev server so his first browser `fetch()`
+  call to the API doesn't fail with an opaque CORS error; and built the analytics endpoint
+  (`GET /api/v1/projects/{id}/analytics` — request volume, error rate, p50/p95/p99 latency,
+  tokens, cost, optional per-model breakdown) ahead of him needing it, per PRD US-004.
+  7 more tests (36 backend total, all passing); verified live against Postgres
 - **Sagar:** _pending_
