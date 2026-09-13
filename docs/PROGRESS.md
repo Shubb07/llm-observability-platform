@@ -56,3 +56,40 @@ Add an entry each day so end-of-day reporting is just copying this section. Form
   tokens, cost, optional per-model breakdown) ahead of him needing it, per PRD US-004.
   7 more tests (36 backend total, all passing); verified live against Postgres
 - **Sagar:** _pending_
+
+### 2026-09-13 (Week 1 — Dashboard Foundation)
+
+- **Sagar:** Dashboard foundation and authentication — Week 1 OJT deliverable.
+
+  **What was implemented:**
+  - React 19 + Vite 8 + TypeScript 6 project scaffold
+  - Axios API client (`src/api/client.ts`) with JWT request interceptor (auto-attaches `Authorization: Bearer <token>` to every request) and global 401 response interceptor (clears stale token, redirects to login)
+  - TanStack Query v5 setup with a module-level `QueryClient` (30s staleTime, no refetch-on-focus, 1 retry)
+  - `AuthContext` + `useAuth()` hook: token persisted in localStorage, validated against `GET /api/v1/auth/me` on startup, `login()`/`logout()` functions
+  - `ProtectedRoute` component: React Router v6 layout route pattern, blocks unauthenticated users, shows spinner during JWT validation
+  - `LoginPage`: controlled inputs, `useMutation`, loading/disabled state, FastAPI error extraction
+  - `RegisterPage`: register → auto-login chain, client-side password validation (match + min 8 chars matches backend `Field(min_length=8)`)
+  - Already-authenticated redirect on both auth pages (logged-in user hitting `/login` or `/register` is redirected to `/projects`)
+  - `AppLayout`: sidebar shell with brand, nav links (NavLink for active highlighting), user email, logout button; `<Outlet />` renders page content
+  - `ProjectsPage`: Week 1 placeholder with correct page-header/page-body structure (real list in Week 2)
+  - Complete design system (`index.css`, 878 lines): CSS custom properties, auth forms, buttons, sidebar, tables, badges, loading/error states
+  - TypeScript interfaces for all backend schemas verified against actual Pydantic schemas line-by-line
+  - API functions pre-built for projects and traces, verified correct against backend
+
+  **APIs integrated:**
+  - `POST /api/v1/auth/register` — registration
+  - `POST /api/v1/auth/login` — login, returns JWT
+  - `GET /api/v1/auth/me` — token validation on startup
+
+  **Tested:**
+  - TypeScript build: passes with strict `noUnusedLocals` + `noUnusedParameters` checks
+  - Auth flow verified: Register → Login → JWT stored → ProtectedRoute allows access → Logout → redirect to /login
+
+  **Issues found and fixed:**
+  - Login/register pages had no already-authenticated redirect (fixed)
+  - ProtectedRoute returned `null` during token validation causing blank screen (fixed — now shows spinner)
+
+  **What remains for Week 2:**
+  - Real `ProjectsPage`: `GET /api/v1/projects` list, project cards, create project form
+  - `CreateProjectPage`: `POST /api/v1/projects`, display returned `api_key`
+  - Project context (active project for sidebar switcher)
