@@ -11,29 +11,30 @@
    -------------------------------------------------------------------------- */
 :root {
   /* Colors — Dark mode, developer-tool aesthetic */
-  --color-bg-primary: #0f1117;       /* Darkest — page background */
-  --color-bg-secondary: #1a1d27;     /* Card / sidebar background */
-  --color-bg-tertiary: #242736;      /* Input / table row hover */
-  --color-bg-elevated: #2d3148;      /* Modals, dropdowns */
+  --color-bg-primary: #0c0f0e;       /* Darkest — page background */
+  --color-bg-secondary: #141a18;     /* Card / sidebar background */
+  --color-bg-tertiary: #1c2420;      /* Input / table row hover */
+  --color-bg-elevated: #24302a;      /* Modals, dropdowns */
 
-  --color-border: #2e3147;           /* Subtle borders */
-  --color-border-focus: #6366f1;     /* Indigo — focused inputs */
+  --color-border: #263029;           /* Subtle borders */
+  --color-border-focus: #2dd4bf;     /* Teal — focused inputs */
 
-  --color-text-primary: #e8eaf0;     /* Main text */
-  --color-text-secondary: #8b8fa8;   /* Muted / secondary text */
-  --color-text-placeholder: #555872; /* Input placeholders */
+  --color-text-primary: #edf2f0;     /* Main text */
+  --color-text-secondary: #8a9d95;   /* Muted / secondary text */
+  --color-text-placeholder: #526059; /* Input placeholders */
 
   /* Brand colors */
-  --color-brand: #6366f1;            /* Indigo — primary actions */
-  --color-brand-hover: #5254cc;
-  --color-brand-light: #818cf8;
+  --color-brand: #14b8a6;            /* Teal — primary actions */
+  --color-brand-hover: #0d9488;
+  --color-brand-light: #5eead4;
+  --color-brand-rgb: 20, 184, 166;   /* for rgba() glows/highlights below */
 
   /* Status colors */
-  --color-success: #22c55e;          /* Green — success status */
-  --color-success-bg: #052e16;
-  --color-error: #ef4444;            /* Red — error status */
+  --color-success: #34d399;          /* Green — success status */
+  --color-success-bg: #052e21;
+  --color-error: #f87171;            /* Red — error status */
   --color-error-bg: #450a0a;
-  --color-warning: #f59e0b;
+  --color-warning: #fbbf24;
 
   /* Typography */
   --font-body: 'Inter', system-ui, sans-serif;
@@ -198,7 +199,7 @@ a:hover {
 
 .form-input:focus {
   border-color: var(--color-border-focus);
-  box-shadow: 0 0 0 3px rgba(99, 102, 241, 0.15);
+  box-shadow: 0 0 0 3px rgba(var(--color-brand-rgb), 0.18);
 }
 
 .form-input:disabled {
@@ -227,9 +228,14 @@ a:hover {
   font-size: 14px;
   font-weight: 500;
   cursor: pointer;
-  transition: background-color var(--transition-fast), opacity var(--transition-fast);
+  transition: background-color var(--transition-fast), opacity var(--transition-fast),
+    transform var(--transition-fast), box-shadow var(--transition-fast);
   text-decoration: none;
   white-space: nowrap;
+}
+
+.btn:active:not(:disabled) {
+  transform: scale(0.97);
 }
 
 .btn:disabled {
@@ -239,12 +245,13 @@ a:hover {
 
 .btn-primary {
   background-color: var(--color-brand);
-  color: #fff;
+  color: #04120f;
   width: 100%;
 }
 
 .btn-primary:hover:not(:disabled) {
   background-color: var(--color-brand-hover);
+  box-shadow: 0 0 0 4px rgba(var(--color-brand-rgb), 0.15);
 }
 
 .btn-secondary {
@@ -366,9 +373,25 @@ a:hover {
   text-decoration: none;
 }
 
+.sidebar-nav-link {
+  position: relative;
+}
+
 .sidebar-nav-link.active {
-  background-color: rgba(99, 102, 241, 0.12);
+  background-color: rgba(var(--color-brand-rgb), 0.14);
   color: var(--color-brand-light);
+}
+
+.sidebar-nav-link.active::before {
+  content: '';
+  position: absolute;
+  left: -12px;
+  top: 50%;
+  transform: translateY(-50%);
+  width: 3px;
+  height: 60%;
+  background-color: var(--color-brand);
+  border-radius: 0 2px 2px 0;
 }
 
 .sidebar-footer {
@@ -438,6 +461,17 @@ a:hover {
   border: 1px solid var(--color-border);
   border-radius: var(--radius-md);
   padding: var(--space-5);
+  transition: border-color var(--transition-base), transform var(--transition-base),
+    box-shadow var(--transition-base);
+}
+
+/* Only cards that are also links/buttons (project cards, etc.) get the
+   interactive lift - a static info card shouldn't look clickable. */
+a.card:hover,
+button.card:hover {
+  border-color: var(--color-brand);
+  transform: translateY(-2px);
+  box-shadow: var(--shadow-md);
 }
 
 .card-grid {
@@ -471,7 +505,15 @@ a:hover {
   background-color: var(--color-success-bg);
   color: var(--color-success);
 }
-.badge-success::before { background-color: var(--color-success); }
+.badge-success::before {
+  background-color: var(--color-success);
+  animation: badge-pulse 2s ease-in-out infinite;
+}
+
+@keyframes badge-pulse {
+  0%, 100% { box-shadow: 0 0 0 0 rgba(52, 211, 153, 0.5); }
+  50% { box-shadow: 0 0 0 4px rgba(52, 211, 153, 0); }
+}
 
 .badge-error {
   background-color: var(--color-error-bg);
@@ -537,7 +579,7 @@ tbody tr:hover {
 }
 
 tbody tr.selected {
-  background-color: rgba(99, 102, 241, 0.08);
+  background-color: rgba(var(--color-brand-rgb), 0.10);
 }
 
 /* --------------------------------------------------------------------------

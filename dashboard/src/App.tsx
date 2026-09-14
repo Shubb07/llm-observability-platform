@@ -6,6 +6,7 @@ import AppLayout from "./components/layout/AppLayout";
 import LoginPage from "./pages/LoginPage";
 import RegisterPage from "./pages/RegisterPage";
 import ProjectsPage from "./pages/ProjectsPage";
+import CreateProjectPage from "./pages/CreateProjectPage";
 
 /**
  * QueryClient — the in-memory cache that TanStack Query uses.
@@ -81,27 +82,14 @@ export default function App() {
              *   The actual page content (ProjectsPage, TracesPage, etc.)
              *
              * Route structure:
-             *   /projects           → ProjectsPage   (Week 1 placeholder, real in Week 2)
-             *   /projects/new       → placeholder     (Week 2)
-             *   /projects/:id/traces → placeholder    (Week 3)
+             *   /projects           → ProjectsPage      (real list)
+             *   /projects/new       → CreateProjectPage (real form)
+             *   /projects/:id/traces → placeholder       (Week 3)
              */}
             <Route element={<ProtectedRoute />}>
               <Route element={<AppLayout />}>
-                {/* Week 1 — Projects placeholder (real list in Week 2) */}
                 <Route path="/projects" element={<ProjectsPage />} />
-
-                {/* Week 2 — Create project (not built yet) */}
-                <Route
-                  path="/projects/new"
-                  element={
-                    <div className="page-body">
-                      <div className="state-container">
-                        <div className="state-icon">🚧</div>
-                        <p className="state-message">Coming in Week 2</p>
-                      </div>
-                    </div>
-                  }
-                />
+                <Route path="/projects/new" element={<CreateProjectPage />} />
 
                 {/* Week 3 — Trace Explorer (not built yet) */}
                 <Route

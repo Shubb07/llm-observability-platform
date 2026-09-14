@@ -1,6 +1,22 @@
 /** Formatter utilities for displaying trace data in human-readable format. */
 
 /**
+ * The backend serializes timestamps as naive UTC (e.g. "2026-09-14T18:33:11.9"
+ * - no "Z", no offset), because the DB column is a naive `timestamp without
+ * time zone` that always happens to hold UTC values (see backend/app/models).
+ *
+ * `new Date(isoString)` on a string with no timezone marker is parsed as
+ * LOCAL time by the JS spec - so without this, every relative/absolute time
+ * shown in the UI would be off by the viewer's UTC offset (discovered live:
+ * a project created seconds ago showed as "5h ago" in IST). Appending "Z"
+ * tells the parser these digits are UTC, which is what they actually are.
+ */
+function parseUtc(isoString: string): Date {
+  const hasTimezoneMarker = /Z$|[+-]\d{2}:\d{2}$/.test(isoString);
+  return new Date(hasTimezoneMarker ? isoString : `${isoString}Z`);
+}
+
+/**
  * Format latency: backend stores milliseconds as a float.
  * Under 1000ms → show "423 ms"
  * Over 1000ms → show "1.42 s"
@@ -36,7 +52,7 @@ export function formatTokens(count: number): string {
  * e.g. "2026-09-08T10:30:00Z" → "Sep 8, 2026, 4:00 PM" (in user's timezone)
  */
 export function formatDate(isoString: string): string {
-  const date = new Date(isoString);
+  const date = parseUtc(isoString);
   return date.toLocaleString(undefined, {
     month: "short",
     day: "numeric",
@@ -51,7 +67,7 @@ export function formatDate(isoString: string): string {
  * e.g. "2 minutes ago", "3 hours ago", "Sep 8"
  */
 export function formatRelativeDate(isoString: string): string {
-  const date = new Date(isoString);
+  const date = parseUtc(isoString);
   const now = new Date();
   const diffMs = now.getTime() - date.getTime();
   const diffMinutes = Math.floor(diffMs / 60_000);
