@@ -104,3 +104,18 @@ Add an entry each day so end-of-day reporting is just copying this section. Form
   threw "Rendered fewer hooks than expected" on every successful login (React silently
   recovered, which is why it wasn't obvious). Fixed by moving the guard after all hooks
   in both files; verified with a fresh browser tab that the console is now clean.
+
+### 2026-09-15 (ahead of Viva 1)
+
+- **Shuban:** built the real Week 2 Projects UI ahead of Sagar so there was something
+  live to demo for Viva 1 — `ProjectsPage` (real project list as cards) and
+  `CreateProjectPage` (name → API key reveal, with copy button and cache invalidation
+  so the new project shows up immediately). Found and fixed a real bug live: backend
+  timestamps have no timezone suffix, and JS's `Date` parser reads a timezone-less
+  string as local time, not UTC — every relative "created X ago" was wrong by the
+  viewer's UTC offset (caught it because a project created seconds ago showed "5h
+  ago"). Fixed in `formatters.ts`. Also replaced the indigo/slate palette with a
+  teal-based one and added missing interactivity (card hover lift, button press
+  feedback, live-pulse on ACTIVE badges) — the prior look read as a generic
+  AI-generated dark theme. Verified the whole flow live against the real backend.
+- **Sagar:** _pending_
