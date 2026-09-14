@@ -37,24 +37,6 @@ export default function LoginPage() {
   const { token, login: storeToken } = useAuth();
 
   /**
-   * Already-authenticated guard.
-   *
-   * If the user already has a token (they're logged in) and somehow lands on
-   * /login (e.g. typed it manually, or hit Back after logging in), we redirect
-   * them to /projects immediately. No reason to show them a login form.
-   *
-   * This is the public-route equivalent of ProtectedRoute — ProtectedRoute
-   * keeps logged-out users away from protected pages; this keeps logged-in
-   * users away from auth pages.
-   *
-   * `replace` prevents /login from going into the browser history, so if
-   * the user presses Back they don't bounce back to /login.
-   */
-  if (token) {
-    return <Navigate to="/projects" replace />;
-  }
-
-  /**
    * CONTROLLED INPUTS — React owns the input values.
    *
    * In React, there are two ways to handle forms:
@@ -108,6 +90,26 @@ export default function LoginPage() {
      */
     e.preventDefault();
     mutation.mutate();
+  }
+
+  /**
+   * Already-authenticated guard.
+   *
+   * If the user already has a token (they're logged in) and somehow lands on
+   * /login (e.g. typed it manually, or hit Back after logging in), we redirect
+   * them to /projects immediately. No reason to show them a login form.
+   *
+   * This must come AFTER every hook call above (useState, useMutation, etc.) —
+   * an early return before a hook violates React's Rules of Hooks, since the
+   * moment `token` flips from null to a real value this component would call
+   * fewer hooks on that render than it did on the previous one. React detects
+   * the mismatch and throws "Rendered fewer hooks than expected."
+   *
+   * `replace` prevents /login from going into the browser history, so if
+   * the user presses Back they don't bounce back to /login.
+   */
+  if (token) {
+    return <Navigate to="/projects" replace />;
   }
 
   return (

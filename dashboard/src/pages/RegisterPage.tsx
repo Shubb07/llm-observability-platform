@@ -28,11 +28,6 @@ export default function RegisterPage() {
   const navigate = useNavigate();
   const { token, login: storeToken } = useAuth();
 
-  // Already-authenticated guard — same pattern as LoginPage.
-  if (token) {
-    return <Navigate to="/projects" replace />;
-  }
-
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [confirmPassword, setConfirmPassword] = useState("");
@@ -84,6 +79,14 @@ export default function RegisterPage() {
     }
 
     mutation.mutate();
+  }
+
+  // Already-authenticated guard — same pattern as LoginPage. Must come after
+  // every hook call above (useState, useMutation) — an early return before a
+  // hook violates React's Rules of Hooks (see LoginPage.tsx for the full
+  // explanation of why this ordering matters).
+  if (token) {
+    return <Navigate to="/projects" replace />;
   }
 
   return (
