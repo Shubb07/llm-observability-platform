@@ -1,5 +1,17 @@
 import axios from "axios";
 
+// Reads a cookie value by name (same logic as AuthContext's getCookie).
+function getCookie(name: string): string | null {
+  const match = document.cookie
+    .split("; ")
+    .find((row) => row.startsWith(`${name}=`));
+  return match ? decodeURIComponent(match.split("=")[1]) : null;
+}
+
+function deleteCookie(name: string): void {
+  document.cookie = `${name}=; Max-Age=0; Path=/; SameSite=Strict`;
+}
+
 /**
  * WHY axios.create()?
  * Instead of using bare `axios.get(...)` everywhere, we create a configured
@@ -23,11 +35,11 @@ const apiClient = axios.create({
  *
  * HOW IT WORKS:
  * Before Axios sends a request, this function runs. It reads the token from
- * localStorage and adds it to the Authorization header.
+ * the cookie and adds it to the Authorization header.
  *
  * WHY AN INTERCEPTOR (not adding the header in each API function)?
  * Without this, every function would need:
- *   const token = localStorage.getItem("token");
+ *   const token = getCookie("token");
  *   headers: { Authorization: `Bearer ${token}` }
  * That's 2 lines repeated in every single API call. The interceptor does it
  * once, centrally, for every request automatically.
@@ -36,7 +48,7 @@ const apiClient = axios.create({
  * if a token exists, and returns the (modified) config. Axios then sends it.
  */
 apiClient.interceptors.request.use((config) => {
-  const token = localStorage.getItem("token");
+  const token = getCookie("token");
   if (token) {
     config.headers.Authorization = `Bearer ${token}`;
   }
@@ -49,13 +61,13 @@ apiClient.interceptors.request.use((config) => {
  * HOW IT WORKS:
  * The first function (identity) handles successful responses — just passes them through.
  * The second function handles errors. If the backend returns 401 (expired or invalid JWT),
- * we clear the stale token and redirect to /login.
+ * we clear the stale cookie and redirect to /login.
  *
  * WHY GLOBAL 401 HANDLING?
  * The JWT expires after 24h (backend default). Without this, an expired token
  * would cause every single API call to fail with a cryptic error. The user would
  * see "Failed to load projects" / "Failed to load traces" with no explanation.
- * Instead: detect 401 → clear token → redirect to login → user understands.
+ * Instead: detect 401 → clear cookie → redirect to login → user understands.
  *
  * `return Promise.reject(error)` — we still reject the promise so TanStack Query
  * can set its error state for any OTHER errors (404, 500, validation, etc.).
@@ -65,7 +77,7 @@ apiClient.interceptors.response.use(
   (response) => response,
   (error) => {
     if (error.response?.status === 401) {
-      localStorage.removeItem("token");
+      deleteCookie("token");
       // Hard redirect — clears all React state and starts fresh at /login
       window.location.href = "/login";
     }

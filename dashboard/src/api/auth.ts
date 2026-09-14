@@ -38,7 +38,7 @@ export async function register(email: string, password: string): Promise<UserOut
  *
  * Sends { email, password } — authenticates the user.
  * Returns Token { access_token, token_type }.
- * The caller stores access_token in localStorage.
+ * The caller stores access_token in a cookie via AuthContext.login().
  */
 export async function login(email: string, password: string): Promise<Token> {
   const { data } = await apiClient.post<Token>("/api/v1/auth/login", {

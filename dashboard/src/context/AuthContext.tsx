@@ -2,6 +2,33 @@ import { createContext, useCallback, useContext, useEffect, useState } from "rea
 import { getMe } from "../api/auth";
 import type { UserOut } from "../types/auth";
 
+// ---------------------------------------------------------------------------
+// Cookie helpers
+// WHY COOKIES instead of localStorage?
+// Cookies survive cross-tab navigation, can be flagged Secure/SameSite by the
+// browser/server, and work with SSR if we ever add it. We keep them
+// accessible from JS (HttpOnly=false) because the Axios interceptor needs to
+// read the value client-side. Set a short Max-Age matching the backend's
+// JWT_EXPIRE_MINUTES (24 h = 86400 s).
+// ---------------------------------------------------------------------------
+const TOKEN_COOKIE = "token";
+const COOKIE_MAX_AGE = 60 * 60 * 24; // 24 hours in seconds
+
+function getCookie(name: string): string | null {
+  const match = document.cookie
+    .split("; ")
+    .find((row) => row.startsWith(`${name}=`));
+  return match ? decodeURIComponent(match.split("=")[1]) : null;
+}
+
+function setCookie(name: string, value: string, maxAge: number): void {
+  document.cookie = `${name}=${encodeURIComponent(value)}; Max-Age=${maxAge}; Path=/; SameSite=Strict`;
+}
+
+function deleteCookie(name: string): void {
+  document.cookie = `${name}=; Max-Age=0; Path=/; SameSite=Strict`;
+}
+
 /**
  * WHAT IS REACT CONTEXT?
  *
@@ -27,10 +54,10 @@ interface AuthContextValue {
   user: UserOut | null;
   /**
    * Call this after a successful login API call.
-   * Stores the token in localStorage and triggers a /me fetch to populate user.
+   * Stores the token in a cookie and triggers a /me fetch to populate user.
    */
   login: (token: string) => void;
-  /** Clears token + user from state and localStorage. */
+  /** Clears token + user from state and cookie. */
   logout: () => void;
   /**
    * True while the app is verifying the stored token on startup.
@@ -61,16 +88,17 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   /**
    * useState — React's hook for component-level state.
    *
-   * `useState<string | null>(localStorage.getItem("token"))`
-   * The initial value is whatever is in localStorage right now.
-   * This means if you close and reopen the browser, you're still logged in.
+   * `useState<string | null>(getCookie(TOKEN_COOKIE))`
+   * The initial value is whatever is in the cookie right now.
+   * This means if you close and reopen the browser, you're still logged in
+   * (until the cookie expires after 24 h).
    *
    * When token changes (via setToken), React re-renders this component and
    * all consumers of the context get the new value.
    */
-  const [token, setToken] = useState<string | null>(localStorage.getItem("token"));
+  const [token, setToken] = useState<string | null>(getCookie(TOKEN_COOKIE));
   const [user, setUser] = useState<UserOut | null>(null);
-  const [isLoading, setIsLoading] = useState<boolean>(!!localStorage.getItem("token"));
+  const [isLoading, setIsLoading] = useState<boolean>(!!getCookie(TOKEN_COOKIE));
   // isLoading starts true only if there's a token to validate (no token = no loading needed)
 
   /**
@@ -102,7 +130,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         // We clear local state as a defensive measure.
         setToken(null);
         setUser(null);
-        localStorage.removeItem("token");
+        deleteCookie(TOKEN_COOKIE);
       })
       .finally(() => setIsLoading(false));
   }, [token]);
@@ -118,14 +146,14 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
    * For login/logout, the dependencies are empty [] — they never change.
    */
   const login = useCallback((newToken: string) => {
-    localStorage.setItem("token", newToken);
+    setCookie(TOKEN_COOKIE, newToken, COOKIE_MAX_AGE);
     setToken(newToken);
     // The useEffect above will trigger because `token` changed,
     // and it will call getMe() to populate `user`.
   }, []);
 
   const logout = useCallback(() => {
-    localStorage.removeItem("token");
+    deleteCookie(TOKEN_COOKIE);
     setToken(null);
     setUser(null);
   }, []);
