@@ -93,3 +93,14 @@ Add an entry each day so end-of-day reporting is just copying this section. Form
   - Real `ProjectsPage`: `GET /api/v1/projects` list, project cards, create project form
   - `CreateProjectPage`: `POST /api/v1/projects`, display returned `api_key`
   - Project context (active project for sidebar switcher)
+
+- **Shuban:** reviewed Sagar's Week 1 push — pulled it, ran `npm install` + full
+  build, and clicked through the live register → login → protected-route flow against
+  the real backend rather than just reading the diff. Architecture (Context, TanStack
+  Query, layout-route auth guard) is correct and the API calls match the backend schemas
+  exactly. Found one real bug via the browser console: both `LoginPage` and
+  `RegisterPage` had their already-authenticated `if (token) return <Navigate />` guard
+  placed *before* their `useState`/`useMutation` calls — a Rules of Hooks violation that
+  threw "Rendered fewer hooks than expected" on every successful login (React silently
+  recovered, which is why it wasn't obvious). Fixed by moving the guard after all hooks
+  in both files; verified with a fresh browser tab that the console is now clean.
