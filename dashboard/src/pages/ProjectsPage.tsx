@@ -4,21 +4,6 @@ import { listProjects } from "../api/projects";
 import { extractErrorMessage } from "../utils/errorUtils";
 import { formatRelativeDate } from "../utils/formatters";
 
-/**
- * FILE: src/pages/ProjectsPage.tsx
- *
- * WEEK 2: real project list.
- *
- * useQuery vs useMutation (see LoginPage for useMutation):
- *   useQuery is for GET requests that just READ data. It fires automatically
- *   on mount (and again whenever the cache goes stale - see queryClient's
- *   staleTime in App.tsx), and gives us back { data, isLoading, isError, error }.
- *   We don't call anything to "trigger" it - just describe what to fetch.
- *
- * queryKey: ["projects"] - TanStack Query caches results under this key.
- *   CreateProjectPage invalidates this same key after creating a project, so
- *   coming back here automatically refetches instead of showing stale data.
- */
 export default function ProjectsPage() {
   const { data: projects, isLoading, isError, error } = useQuery({
     queryKey: ["projects"],
