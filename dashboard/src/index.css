@@ -23,11 +23,16 @@
   --color-text-secondary: #8a9d95;   /* Muted / secondary text */
   --color-text-placeholder: #526059; /* Input placeholders */
 
-  /* Brand colors */
   --color-brand: #14b8a6;            /* Teal — primary actions */
   --color-brand-hover: #0d9488;
   --color-brand-light: #5eead4;
   --color-brand-rgb: 20, 184, 166;   /* for rgba() glows/highlights below */
+  --color-brand-2: #22d3ee;          /* Cyan — gradient partner to teal */
+  --color-accent: #fb923c;           /* Warm amber-orange — complementary pop */
+  --color-accent-rgb: 251, 146, 60;
+
+  --gradient-brand: linear-gradient(135deg, var(--color-brand), var(--color-brand-2));
+  --gradient-accent: linear-gradient(135deg, var(--color-accent), #f472b6);
 
   /* Status colors */
   --color-success: #34d399;          /* Green — success status */
@@ -90,6 +95,23 @@ body {
   background-color: var(--color-bg-primary);
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
+  position: relative;
+}
+
+body::before {
+  content: '';
+  position: fixed;
+  inset: 0;
+  pointer-events: none;
+  z-index: 0;
+  background:
+    radial-gradient(650px circle at 8% -5%, rgba(var(--color-brand-rgb), 0.10), transparent 60%),
+    radial-gradient(550px circle at 100% 0%, rgba(var(--color-accent-rgb), 0.06), transparent 55%);
+}
+
+#root {
+  position: relative;
+  z-index: 1;
 }
 
 #root {
@@ -136,7 +158,8 @@ a:hover {
 .auth-brand-icon {
   width: 44px;
   height: 44px;
-  background: linear-gradient(135deg, var(--color-brand), var(--color-brand-light));
+  background: var(--gradient-brand);
+  box-shadow: 0 8px 24px rgba(var(--color-brand-rgb), 0.35);
   border-radius: var(--radius-md);
   display: inline-flex;
   align-items: center;
@@ -244,14 +267,16 @@ a:hover {
 }
 
 .btn-primary {
-  background-color: var(--color-brand);
+  background: var(--gradient-brand);
   color: #04120f;
+  font-weight: 600;
   width: 100%;
+  box-shadow: 0 2px 10px rgba(var(--color-brand-rgb), 0.25);
 }
 
 .btn-primary:hover:not(:disabled) {
-  background-color: var(--color-brand-hover);
-  box-shadow: 0 0 0 4px rgba(var(--color-brand-rgb), 0.15);
+  filter: brightness(1.08);
+  box-shadow: 0 4px 20px rgba(var(--color-brand-rgb), 0.4);
 }
 
 .btn-secondary {
@@ -319,7 +344,8 @@ a:hover {
 .sidebar-brand-icon {
   width: 32px;
   height: 32px;
-  background: linear-gradient(135deg, var(--color-brand), var(--color-brand-light));
+  background: var(--gradient-brand);
+  box-shadow: 0 4px 14px rgba(var(--color-brand-rgb), 0.3);
   border-radius: var(--radius-sm);
   display: flex;
   align-items: center;
@@ -394,8 +420,66 @@ a:hover {
   border-radius: 0 2px 2px 0;
 }
 
-.sidebar-footer {
+.sidebar-status {
   margin-top: auto;
+  display: flex;
+  align-items: center;
+  gap: var(--space-3);
+  padding: var(--space-3) var(--space-4);
+  margin-left: var(--space-3);
+  margin-right: var(--space-3);
+  margin-bottom: var(--space-2);
+  background-color: var(--color-bg-tertiary);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-md);
+}
+
+.sidebar-status-dot {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  flex-shrink: 0;
+}
+
+.sidebar-status-dot-up {
+  background-color: var(--color-success);
+  animation: badge-pulse 2s ease-in-out infinite;
+}
+
+.sidebar-status-dot-down {
+  background-color: var(--color-error);
+}
+
+.sidebar-status-dot-checking {
+  background-color: var(--color-text-secondary);
+}
+
+.sidebar-status-label {
+  font-size: 11px;
+  color: var(--color-text-secondary);
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+}
+
+.sidebar-status-value {
+  font-size: 13px;
+  font-weight: 500;
+  margin-top: 1px;
+}
+
+.sidebar-status-value-up {
+  color: var(--color-success);
+}
+
+.sidebar-status-value-down {
+  color: var(--color-error);
+}
+
+.sidebar-status-value-checking {
+  color: var(--color-text-secondary);
+}
+
+.sidebar-footer {
   padding: var(--space-4);
   border-top: 1px solid var(--color-border);
 }
@@ -457,21 +541,39 @@ a:hover {
    Cards
    -------------------------------------------------------------------------- */
 .card {
+  position: relative;
   background-color: var(--color-bg-secondary);
   border: 1px solid var(--color-border);
   border-radius: var(--radius-md);
   padding: var(--space-5);
+  overflow: hidden;
   transition: border-color var(--transition-base), transform var(--transition-base),
     box-shadow var(--transition-base);
 }
 
-/* Only cards that are also links/buttons (project cards, etc.) get the
-   interactive lift - a static info card shouldn't look clickable. */
+.card::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  height: 3px;
+  background: var(--gradient-brand);
+  transform: scaleX(0);
+  transform-origin: left;
+  transition: transform var(--transition-base);
+}
+
 a.card:hover,
 button.card:hover {
-  border-color: var(--color-brand);
-  transform: translateY(-2px);
-  box-shadow: var(--shadow-md);
+  border-color: rgba(var(--color-brand-rgb), 0.5);
+  transform: translateY(-3px);
+  box-shadow: var(--shadow-md), 0 0 0 1px rgba(var(--color-brand-rgb), 0.1);
+}
+
+a.card:hover::before,
+button.card:hover::before {
+  transform: scaleX(1);
 }
 
 .card-grid {
@@ -634,7 +736,8 @@ tbody tr.selected {
   align-items: center;
   gap: var(--space-2);
   background-color: var(--color-bg-primary);
-  border: 1px solid var(--color-border);
+  border: 1px solid rgba(var(--color-brand-rgb), 0.35);
+  box-shadow: 0 0 0 3px rgba(var(--color-brand-rgb), 0.08);
   border-radius: var(--radius-sm);
   padding: var(--space-3) var(--space-4);
   margin: var(--space-3) 0;
@@ -882,6 +985,10 @@ tbody tr.selected {
 
 .text-error {
   color: var(--color-error);
+}
+
+.text-accent {
+  color: var(--color-accent);
 }
 
 .divider {

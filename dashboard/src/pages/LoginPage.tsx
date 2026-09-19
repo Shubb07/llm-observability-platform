@@ -4,6 +4,7 @@ import { useMutation } from "@tanstack/react-query";
 import { login } from "../api/auth";
 import { useAuth } from "../context/AuthContext";
 import { extractErrorMessage } from "../utils/errorUtils";
+import BrandIcon from "../components/BrandIcon";
 
 /**
  * FILE: src/pages/LoginPage.tsx
@@ -117,7 +118,9 @@ export default function LoginPage() {
       <div className="auth-card">
         {/* Brand header */}
         <div className="auth-brand">
-          <div className="auth-brand-icon">📡</div>
+          <div className="auth-brand-icon">
+            <BrandIcon size={22} />
+          </div>
           <h1>LLM Observability</h1>
           <p>Sign in to your dashboard</p>
         </div>

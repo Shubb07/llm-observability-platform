@@ -92,7 +92,7 @@ export default function ProjectsPage() {
                   </span>
                 </div>
                 <p className="text-muted" style={{ fontSize: "13px" }}>
-                  Your role: <span className="text-mono">{project.role}</span>
+                  Your role: <span className="text-mono text-accent">{project.role}</span>
                 </p>
                 <p className="text-muted" style={{ fontSize: "12px", marginTop: "4px" }}>
                   Created {formatRelativeDate(project.created_at)}

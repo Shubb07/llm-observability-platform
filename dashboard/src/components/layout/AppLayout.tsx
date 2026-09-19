@@ -1,5 +1,7 @@
 import { Outlet, NavLink } from "react-router-dom";
 import { useAuth } from "../../context/AuthContext";
+import BrandIcon from "../BrandIcon";
+import SidebarStatus from "./SidebarStatus";
 
 /**
  * FILE: src/components/layout/AppLayout.tsx
@@ -51,7 +53,9 @@ export default function AppLayout() {
 
         {/* Brand / logo area */}
         <div className="sidebar-brand">
-          <div className="sidebar-brand-icon">📡</div>
+          <div className="sidebar-brand-icon">
+            <BrandIcon size={16} />
+          </div>
           <span className="sidebar-brand-name">LLM Observability</span>
         </div>
 
@@ -82,7 +86,8 @@ export default function AppLayout() {
           </div>
         </nav>
 
-        {/* User info + logout — pinned to the bottom of the sidebar */}
+        <SidebarStatus />
+
         <div className="sidebar-footer">
           <div className="sidebar-user">
             {/**
