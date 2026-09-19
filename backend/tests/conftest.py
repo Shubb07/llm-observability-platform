@@ -1,3 +1,8 @@
+import os
+
+# Must be set before app modules import settings — DATABASE_URL has no default.
+os.environ.setdefault("DATABASE_URL", "sqlite:///:memory:")
+
 import pytest
 from fastapi.testclient import TestClient
 from sqlalchemy import create_engine

@@ -31,14 +31,18 @@ cd backend
 python -m venv .venv
 .venv/Scripts/pip install -r requirements.txt   # .venv/bin/pip on macOS/Linux
 
-# 3. Run the API
+# 3. Configure the database connection (required — there is no built-in default)
+cp .env.example .env
+
+# 4. Run the API
 .venv/Scripts/python -m uvicorn app.main:app --reload --port 8000
 ```
 
 Then visit `http://localhost:8000/docs` for interactive API docs, or `http://localhost:8000/health`.
 
-Configuration is read from environment variables (see `.env.example`); copy it to `.env` and
-adjust `DATABASE_URL` / `JWT_SECRET` as needed.
+Configuration is read from environment variables / `.env` (see `.env.example`). `DATABASE_URL` is
+required and the app will not start without it; adjust `JWT_SECRET` and the rest as needed.
+`.env` is gitignored — never commit it.
 
 ## Testing
 
