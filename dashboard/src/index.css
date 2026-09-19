@@ -1024,3 +1024,171 @@ tbody tr.selected {
   color: var(--color-warning);
   margin-top: var(--space-2);
 }
+
+/* --------------------------------------------------------------------------
+   Dialog / Modal
+   -------------------------------------------------------------------------- */
+.dialog-overlay {
+  position: fixed;
+  inset: 0;
+  background-color: rgba(0, 0, 0, 0.65);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 200;
+  padding: var(--space-6);
+  animation: fade-in 150ms ease;
+}
+
+@keyframes fade-in {
+  from { opacity: 0; }
+  to   { opacity: 1; }
+}
+
+.dialog {
+  background-color: var(--color-bg-secondary);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-lg);
+  box-shadow: var(--shadow-lg);
+  width: 100%;
+  max-width: 460px;
+  animation: slide-up 150ms ease;
+}
+
+@keyframes slide-up {
+  from { transform: translateY(12px); opacity: 0; }
+  to   { transform: translateY(0);    opacity: 1; }
+}
+
+.dialog-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: var(--space-5) var(--space-6);
+  border-bottom: 1px solid var(--color-border);
+}
+
+.dialog-title {
+  font-size: 16px;
+  font-weight: 600;
+  color: var(--color-text-primary);
+  letter-spacing: -0.2px;
+}
+
+.dialog-close {
+  color: var(--color-text-secondary);
+  font-size: 16px;
+  line-height: 1;
+}
+
+.dialog-body {
+  padding: var(--space-6);
+}
+
+.dialog-actions {
+  display: flex;
+  justify-content: flex-end;
+  gap: var(--space-3);
+}
+
+/* --------------------------------------------------------------------------
+   API Key notice banner
+   -------------------------------------------------------------------------- */
+.api-key-notice {
+  display: flex;
+  gap: var(--space-3);
+  background-color: rgba(245, 158, 11, 0.08);
+  border: 1px solid rgba(245, 158, 11, 0.3);
+  border-radius: var(--radius-sm);
+  padding: var(--space-4);
+  margin-bottom: var(--space-5);
+  font-size: 13px;
+  color: var(--color-text-primary);
+  line-height: 1.6;
+}
+
+.api-key-notice-icon {
+  font-size: 16px;
+  flex-shrink: 0;
+  margin-top: 1px;
+}
+
+/* --------------------------------------------------------------------------
+   Project Cards
+   -------------------------------------------------------------------------- */
+.project-card {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-3);
+  background-color: var(--color-bg-secondary);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-md);
+  padding: var(--space-5);
+  text-align: left;
+  cursor: pointer;
+  font-family: var(--font-body);
+  transition: border-color var(--transition-base), box-shadow var(--transition-base),
+              transform var(--transition-base);
+  width: 100%;
+}
+
+.project-card:hover {
+  border-color: var(--color-brand);
+  box-shadow: 0 0 0 1px var(--color-brand), var(--shadow-md);
+  transform: translateY(-2px);
+}
+
+.project-card-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+
+.project-card-icon {
+  width: 36px;
+  height: 36px;
+  background: linear-gradient(135deg, var(--color-brand), var(--color-brand-light));
+  border-radius: var(--radius-sm);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 18px;
+}
+
+.project-card-name {
+  font-size: 15px;
+  font-weight: 600;
+  color: var(--color-text-primary);
+  letter-spacing: -0.2px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.project-card-meta {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--space-2);
+}
+
+.project-card-date {
+  font-size: 12px;
+  color: var(--color-text-secondary);
+}
+
+.project-card-arrow {
+  position: absolute;
+  bottom: var(--space-4);
+  right: var(--space-5);
+  font-size: 16px;
+  color: var(--color-text-placeholder);
+  transition: color var(--transition-fast), transform var(--transition-fast);
+}
+
+.project-card:hover .project-card-arrow {
+  color: var(--color-brand-light);
+  transform: translateX(3px);
+}
+
