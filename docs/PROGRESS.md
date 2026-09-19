@@ -119,3 +119,37 @@ Add an entry each day so end-of-day reporting is just copying this section. Form
   feedback, live-pulse on ACTIVE badges) — the prior look read as a generic
   AI-generated dark theme. Verified the whole flow live against the real backend.
 - **Sagar:** _pending_
+
+### 2026-09-19
+
+- **Sagar:** Week 2 dashboard work.
+
+  **What was implemented:**
+  - Migrated JWT storage from `localStorage` to cookies (`Max-Age=86400`, `SameSite=Strict`,
+    `Path=/`) across `AuthContext.tsx`, `client.ts`, and `auth.ts` — cookie helpers
+    (`getCookie`, `setCookie`, `deleteCookie`) added inline; Axios request + 401 response
+    interceptors updated accordingly
+  - Stripped all tutorial/explanatory comments across all dashboard `src/` files
+    (`AuthContext`, `client.ts`, `auth.ts`, `App.tsx`, `main.tsx`, `ProtectedRoute`,
+    `AppLayout`, `LoginPage`, `RegisterPage`, `ProjectsPage`) — files went from ~1200 total
+    lines to ~650
+  - Built `ProjectsPage` with real project list: `useQuery` for `GET /api/v1/projects`,
+    card grid, loading spinner, error state, empty state with CTA
+  - Built `CreateProjectDialog`: project name form → `useMutation` → API key reveal with
+    amber one-time warning banner, monospace key display, and copy-to-clipboard button
+    (flashes "✓ Copied" for 2s); invalidates `["projects"]` cache on success so list
+    updates immediately
+  - Added `ProjectDetailPage` placeholder at `/projects/:id` (Trace Explorer lives here next)
+  - Added dialog, project card, and API key notice CSS to `index.css`
+  - Resolved rebase conflicts after pulling Shuban's Week 2 work — took Shuban's
+    `ProjectsPage` and `CreateProjectPage` as the canonical version (his was already live
+    for Viva 1); kept our cookie migration and comment-removal cleanly rebased on top
+
+  **APIs integrated:**
+  - `GET /api/v1/projects` — project list
+  - `POST /api/v1/projects` — create project, one-time API key reveal
+
+  **What remains for Week 3:**
+  - Trace Explorer: `GET /api/v1/projects/{id}/traces` with filters (model, status),
+    paginated table, trace detail side panel
+
