@@ -7,6 +7,7 @@ import LoginPage from "./pages/LoginPage";
 import RegisterPage from "./pages/RegisterPage";
 import ProjectsPage from "./pages/ProjectsPage";
 import CreateProjectPage from "./pages/CreateProjectPage";
+import TracesPage from "./pages/TracesPage";
 
 const queryClient = new QueryClient({
   defaultOptions: {
@@ -32,17 +33,7 @@ export default function App() {
                 <Route path="/projects" element={<ProjectsPage />} />
                 <Route path="/projects/new" element={<CreateProjectPage />} />
 
-                <Route
-                  path="/projects/:projectId/traces"
-                  element={
-                    <div className="page-body">
-                      <div className="state-container">
-                        <div className="state-icon">🚧</div>
-                        <p className="state-message">Coming in Week 3</p>
-                      </div>
-                    </div>
-                  }
-                />
+                <Route path="/projects/:projectId/traces" element={<TracesPage />} />
               </Route>
             </Route>
 
