@@ -12,12 +12,15 @@ import {
   formatTokens,
 } from "../utils/formatters";
 
+const PAGE_SIZE = 50;
+
 export default function TracesPage() {
   const { projectId = "" } = useParams();
   const [timeRange, setTimeRange] = useState<TimeRange>("30d");
   const [status, setStatus] = useState("");
   const [model, setModel] = useState("");
   const [expandedId, setExpandedId] = useState<string | null>(null);
+  const [page, setPage] = useState(0);
 
   const analytics = useQuery({
     queryKey: ["analytics", projectId, timeRange],
@@ -25,14 +28,27 @@ export default function TracesPage() {
   });
 
   const traces = useQuery({
-    queryKey: ["traces", projectId, status, model],
+    queryKey: ["traces", projectId, status, model, page],
     queryFn: () =>
       listTraces(projectId, {
         status: status || undefined,
         model: model || undefined,
-        limit: 50,
+        limit: PAGE_SIZE,
+        offset: page * PAGE_SIZE,
       }),
   });
+
+  // Changing a filter should always land back on page 1 — otherwise a narrower
+  // result set can leave `page` pointing past the new last page (empty table,
+  // no obvious way back). Resetting here keeps offset and filters in sync.
+  function updateStatus(value: string) {
+    setStatus(value);
+    setPage(0);
+  }
+  function updateModel(value: string) {
+    setModel(value);
+    setPage(0);
+  }
 
   const overall = analytics.data?.overall;
   const modelNames = analytics.data?.by_model?.map((m) => m.model) ?? [];
@@ -88,7 +104,7 @@ export default function TracesPage() {
           <select
             className="filter-select"
             value={status}
-            onChange={(e) => setStatus(e.target.value)}
+            onChange={(e) => updateStatus(e.target.value)}
           >
             <option value="">All</option>
             <option value="success">Success</option>
@@ -99,7 +115,7 @@ export default function TracesPage() {
           <select
             className="filter-select"
             value={model}
-            onChange={(e) => setModel(e.target.value)}
+            onChange={(e) => updateModel(e.target.value)}
           >
             <option value="">All</option>
             {modelNames.map((name) => (
@@ -201,6 +217,30 @@ export default function TracesPage() {
                 ))}
               </tbody>
             </table>
+          </div>
+        )}
+
+        {traces.data && traces.data.total > PAGE_SIZE && (
+          <div className="metrics-toolbar" style={{ marginTop: "var(--space-4)" }}>
+            <button
+              className="btn btn-secondary btn-sm"
+              disabled={page === 0}
+              onClick={() => setPage((p) => Math.max(0, p - 1))}
+            >
+              ← Prev
+            </button>
+            <span className="filter-label">
+              {page * PAGE_SIZE + 1}
+              {"–"}
+              {Math.min((page + 1) * PAGE_SIZE, traces.data.total)} of {traces.data.total}
+            </span>
+            <button
+              className="btn btn-secondary btn-sm"
+              disabled={(page + 1) * PAGE_SIZE >= traces.data.total}
+              onClick={() => setPage((p) => p + 1)}
+            >
+              Next →
+            </button>
           </div>
         )}
       </div>
