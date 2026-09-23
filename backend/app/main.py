@@ -1,22 +1,14 @@
-from contextlib import asynccontextmanager
-
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 
 from app.api import analytics, auth, projects, traces
 from app.core.config import settings
-from app.core.db import Base, engine
 
-
-@asynccontextmanager
-async def lifespan(app: FastAPI):
-    # Table creation for local development only. Once schema changes stop being
-    # trivial, replace this with Alembic migrations (see infra/README.md).
-    Base.metadata.create_all(bind=engine)
-    yield
-
-
-app = FastAPI(title="LLM Observability Platform API", version="0.1.0", lifespan=lifespan)
+# Schema is managed by Alembic now (backend/alembic/versions/), not created here.
+# Run `alembic upgrade head` before starting the server — see backend/README.md.
+# Tests are unaffected: they build their own SQLite schema directly (see
+# tests/conftest.py) and never run this app's startup.
+app = FastAPI(title="LLM Observability Platform API", version="0.1.0")
 
 app.add_middleware(
     CORSMiddleware,

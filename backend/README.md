@@ -16,9 +16,7 @@ the SDK or dashboard existing yet: user auth, project management, and trace inge
 | `app/alerting/`   | Placeholder | Alert rule evaluation against incoming metrics, notification triggering |
 | `app/auth/`       | Placeholder | Reserved — auth is currently implemented in `app/api/auth.py` + `app/core/security.py`; split out here if it grows (e.g. OAuth) |
 
-Table creation currently happens via `Base.metadata.create_all()` on startup — fine for a
-single dev database, but replace with Alembic migrations before this needs to run against
-more than one environment.
+Schema is managed by Alembic (`alembic/versions/`) — see "Database migrations" below.
 
 ## Running locally
 
@@ -34,7 +32,10 @@ python -m venv .venv
 # 3. Configure the database connection (required — there is no built-in default)
 cp .env.example .env
 
-# 4. Run the API
+# 4. Apply migrations (creates the schema — see "Database migrations" below)
+.venv/Scripts/python -m alembic upgrade head
+
+# 5. Run the API
 .venv/Scripts/python -m uvicorn app.main:app --reload --port 8000
 ```
 
@@ -51,6 +52,37 @@ Tests run against an in-memory SQLite database — no Docker required:
 ```bash
 .venv/Scripts/python -m pytest -q
 ```
+
+Tests build their own SQLite schema directly in `tests/conftest.py` and never touch
+Alembic or the real Postgres database, so they don't need migrations applied first.
+
+## Database migrations
+
+Schema changes go through Alembic instead of `Base.metadata.create_all()`, so changes are
+versioned and reviewable instead of silently regenerated from the models on every startup.
+
+```bash
+# Apply all pending migrations (run this after pulling new migrations, and before
+# starting the server for the first time)
+.venv/Scripts/python -m alembic upgrade head
+
+# After changing a model in app/models/, generate a migration for it
+.venv/Scripts/python -m alembic revision --autogenerate -m "describe the change"
+
+# Always read the generated file before committing it — autogenerate detects column/
+# table/index changes but not everything (e.g. renames show up as drop + add; data
+# migrations are never generated). Then apply and verify it:
+.venv/Scripts/python -m alembic upgrade head
+
+# Roll back one migration if something's wrong
+.venv/Scripts/python -m alembic downgrade -1
+```
+
+`alembic/env.py` reads `DATABASE_URL` from the same `Settings`/`.env` the API uses — there's
+no second connection string to keep in sync. The `baseline_schema` revision is the starting
+point, generated from the models as they existed once Alembic was introduced (`projects`,
+`users`, `project_memberships`, `traces` — matches what `create_all()` had already been
+building, so applying it to an existing dev database is a no-op stamp, not new DDL).
 
 ## API summary
 
