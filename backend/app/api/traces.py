@@ -35,11 +35,26 @@ def ingest_traces(
             .all()
         }
 
-    new_traces = [
-        Trace(project_id=project.id, **trace_in.model_dump())
-        for trace_in in payload.traces
-        if trace_in.client_trace_id is None or trace_in.client_trace_id not in existing_client_ids
-    ]
+    # The existing-rows check above only catches IDs already committed to the
+    # DB. It does not catch the same client_trace_id appearing twice *within
+    # this one payload* (e.g. a caller building a batch from a source that
+    # accidentally repeats an entry) - `.in_(incoming_client_ids)` de-dupes
+    # implicitly on the read, so nothing there would have caught it. Without
+    # this, two rows sharing a client_trace_id would both pass the check
+    # above, both get queued for insert, and the unique constraint would
+    # reject the whole `add_all` as one transaction - discarding every trace
+    # in the batch, including unrelated ones that had nothing to do with the
+    # collision (see IntegrityError handler below, which then misreports the
+    # entire batch as "already delivered" even though none of it was stored).
+    seen_in_batch: set[str] = set()
+    new_traces: list[Trace] = []
+    for trace_in in payload.traces:
+        cid = trace_in.client_trace_id
+        if cid is not None:
+            if cid in existing_client_ids or cid in seen_in_batch:
+                continue
+            seen_in_batch.add(cid)
+        new_traces.append(Trace(project_id=project.id, **trace_in.model_dump()))
     skipped = len(payload.traces) - len(new_traces)
 
     db.add_all(new_traces)
