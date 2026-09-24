@@ -3,7 +3,7 @@ from sqlalchemy.orm import Session
 
 from app.api.deps import get_current_user, get_project_membership, require_admin
 from app.core.db import get_db
-from app.models.project import Project, ProjectMembership, ProjectRole
+from app.models.project import Project, ProjectMembership, ProjectRole, ProjectStatus
 from app.models.user import User
 from app.schemas.member import MemberAdd, MemberOut, MemberRoleUpdate
 from app.schemas.project import ProjectCreate, ProjectOut, ProjectSummary
@@ -53,6 +53,35 @@ def list_projects(
 @router.get("/{project_id}", response_model=ProjectOut)
 def get_project(membership: ProjectMembership = Depends(get_project_membership)):
     return membership.project
+
+
+@router.post("/{project_id}/archive", response_model=ProjectOut)
+def archive_project(
+    membership: ProjectMembership = Depends(require_admin),
+    db: Session = Depends(get_db),
+):
+    # Archiving stops new trace ingestion (get_project_by_api_key rejects any
+    # project whose status isn't ACTIVE) but does not affect existing data —
+    # the project's traces and analytics stay readable. Idempotent: archiving
+    # an already-archived project is a no-op, not an error, since the caller
+    # just wants "make sure it's archived" to succeed either way.
+    project = membership.project
+    project.status = ProjectStatus.ARCHIVED.value
+    db.commit()
+    db.refresh(project)
+    return project
+
+
+@router.post("/{project_id}/unarchive", response_model=ProjectOut)
+def unarchive_project(
+    membership: ProjectMembership = Depends(require_admin),
+    db: Session = Depends(get_db),
+):
+    project = membership.project
+    project.status = ProjectStatus.ACTIVE.value
+    db.commit()
+    db.refresh(project)
+    return project
 
 
 @router.get("/{project_id}/members", response_model=list[MemberOut])
