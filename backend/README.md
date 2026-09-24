@@ -94,6 +94,8 @@ building, so applying it to an existing dev database is a no-op stamp, not new D
 | `POST /api/v1/projects` | JWT | Create a project, returns its API key |
 | `GET /api/v1/projects` | JWT | List projects the current user belongs to |
 | `GET /api/v1/projects/{id}` | JWT | Get one project (must be a member) |
+| `POST /api/v1/projects/{id}/archive` | JWT, Admin | Stop new trace ingestion (existing traces stay readable). Idempotent. |
+| `POST /api/v1/projects/{id}/unarchive` | JWT, Admin | Resume ingestion for an archived project. Idempotent. |
 | `GET /api/v1/projects/{id}/members` | JWT | List a project's members and their roles |
 | `POST /api/v1/projects/{id}/members` | JWT, Admin | Add an existing registered user to the project |
 | `PATCH /api/v1/projects/{id}/members/{user_id}` | JWT, Admin | Change a member's role |
