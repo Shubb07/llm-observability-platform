@@ -13,6 +13,7 @@ class ProjectOut(BaseModel):
     api_key: str
     status: str
     created_at: datetime
+    api_key_rotated_at: datetime | None = None
 
     model_config = {"from_attributes": True}
 

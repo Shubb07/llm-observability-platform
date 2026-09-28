@@ -1,9 +1,11 @@
+from datetime import datetime, timezone
+
 from fastapi import APIRouter, Depends, HTTPException, status
 from sqlalchemy.orm import Session
 
 from app.api.deps import get_current_user, get_project_membership, require_admin
 from app.core.db import get_db
-from app.models.project import Project, ProjectMembership, ProjectRole, ProjectStatus
+from app.models.project import Project, ProjectMembership, ProjectRole, ProjectStatus, generate_api_key
 from app.models.user import User
 from app.schemas.member import MemberAdd, MemberOut, MemberRoleUpdate
 from app.schemas.project import ProjectCreate, ProjectOut, ProjectSummary
@@ -79,6 +81,24 @@ def unarchive_project(
 ):
     project = membership.project
     project.status = ProjectStatus.ACTIVE.value
+    db.commit()
+    db.refresh(project)
+    return project
+
+
+@router.post("/{project_id}/rotate-key", response_model=ProjectOut)
+def rotate_project_api_key(
+    membership: ProjectMembership = Depends(require_admin),
+    db: Session = Depends(get_db),
+):
+    # The old key stops working the moment this commits - get_project_by_api_key
+    # looks up by the current column value, so there's nothing extra to
+    # invalidate. The new key is returned here, once, the same way project
+    # creation reveals it - the caller (admin) is responsible for updating
+    # whatever's using the old one (the SDK's init(), a CI secret, etc.).
+    project = membership.project
+    project.api_key = generate_api_key()
+    project.api_key_rotated_at = datetime.now(timezone.utc)
     db.commit()
     db.refresh(project)
     return project

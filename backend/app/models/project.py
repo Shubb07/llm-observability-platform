@@ -32,6 +32,11 @@ class Project(Base):
     api_key: Mapped[str] = mapped_column(String(64), unique=True, index=True, default=generate_api_key)
     status: Mapped[str] = mapped_column(String(20), default=ProjectStatus.ACTIVE.value)
     created_at: Mapped[datetime] = mapped_column(DateTime, default=lambda: datetime.now(timezone.utc))
+    # Null until the key is rotated at least once (the creation-time key never
+    # counts as a "rotation") - lets the dashboard show "never rotated" vs.
+    # "rotated 2 days ago" instead of defaulting to created_at, which would
+    # be misleading for a key that's actually the original.
+    api_key_rotated_at: Mapped[datetime | None] = mapped_column(DateTime, nullable=True)
 
     memberships: Mapped[list["ProjectMembership"]] = relationship(back_populates="project")
 

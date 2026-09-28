@@ -138,3 +138,72 @@ def test_archive_project_requires_membership(client, auth_headers):
     response = client.post(f"/api/v1/projects/{created['id']}/archive", headers=other_headers)
 
     assert response.status_code == 403
+
+
+def test_rotate_key_issues_new_key_and_invalidates_old(client, auth_headers):
+    created = client.post(
+        "/api/v1/projects", json={"name": "Rotate Me"}, headers=auth_headers
+    ).json()
+    old_key = created["api_key"]
+    assert created["api_key_rotated_at"] is None
+
+    trace_payload = {
+        "traces": [{"model": "gpt-4o", "provider": "openai", "prompt": "hi", "latency_ms": 100.0}]
+    }
+    ok = client.post("/api/v1/traces", json=trace_payload, headers={"X-API-Key": old_key})
+    assert ok.status_code == 201
+
+    rotated = client.post(f"/api/v1/projects/{created['id']}/rotate-key", headers=auth_headers)
+    assert rotated.status_code == 200
+    new_key = rotated.json()["api_key"]
+    assert new_key != old_key
+    assert new_key.startswith("llmobs_")
+    assert rotated.json()["api_key_rotated_at"] is not None
+
+    # Old key is dead immediately.
+    old_key_rejected = client.post(
+        "/api/v1/traces", json=trace_payload, headers={"X-API-Key": old_key}
+    )
+    assert old_key_rejected.status_code == 401
+
+    # New key works right away.
+    new_key_works = client.post(
+        "/api/v1/traces", json=trace_payload, headers={"X-API-Key": new_key}
+    )
+    assert new_key_works.status_code == 201
+
+
+def test_rotate_key_requires_admin(client, auth_headers):
+    created = client.post(
+        "/api/v1/projects", json={"name": "Not Yours To Rotate"}, headers=auth_headers
+    ).json()
+
+    other_payload = {"email": "rotator@example.com", "password": "supersecret123"}
+    client.post("/api/v1/auth/register", json=other_payload)
+    other_login = client.post("/api/v1/auth/login", json=other_payload).json()
+    other_headers = {"Authorization": f"Bearer {other_login['access_token']}"}
+
+    client.post(
+        f"/api/v1/projects/{created['id']}/members",
+        json={"email": "rotator@example.com", "role": "MEMBER"},
+        headers=auth_headers,
+    )
+
+    response = client.post(f"/api/v1/projects/{created['id']}/rotate-key", headers=other_headers)
+
+    assert response.status_code == 403
+
+
+def test_rotate_key_requires_membership(client, auth_headers):
+    created = client.post(
+        "/api/v1/projects", json={"name": "Outsider Rotate"}, headers=auth_headers
+    ).json()
+
+    other_payload = {"email": "outside-rotator@example.com", "password": "supersecret123"}
+    client.post("/api/v1/auth/register", json=other_payload)
+    other_login = client.post("/api/v1/auth/login", json=other_payload).json()
+    other_headers = {"Authorization": f"Bearer {other_login['access_token']}"}
+
+    response = client.post(f"/api/v1/projects/{created['id']}/rotate-key", headers=other_headers)
+
+    assert response.status_code == 403
