@@ -1,7 +1,12 @@
+import csv
+import io
+import json
+
 from fastapi import APIRouter, Depends, HTTPException, Query, status as http_status
+from fastapi.responses import StreamingResponse
 from sqlalchemy import func
 from sqlalchemy.exc import IntegrityError
-from sqlalchemy.orm import Session
+from sqlalchemy.orm import Query as SAQuery, Session
 
 from app.api.deps import get_project_by_api_key, get_project_membership
 from app.core.db import get_db
@@ -10,6 +15,25 @@ from app.models.trace import Trace
 from app.schemas.trace import TraceBatchIn, TraceListOut, TraceOut
 
 router = APIRouter(prefix="/api/v1", tags=["traces"])
+
+TRACE_EXPORT_COLUMNS = [
+    "id", "client_trace_id", "model", "provider", "prompt", "completion",
+    "prompt_tokens", "completion_tokens", "latency_ms", "cost", "status",
+    "error_message", "tags", "created_at",
+]
+
+
+def _filtered_traces_query(
+    db: Session, project_id: str, model: str | None, status_filter: str | None
+) -> SAQuery:
+    """Shared by list_traces and export_traces so the two can never drift -
+    same filters, same project scoping, same ordering."""
+    query = db.query(Trace).filter_by(project_id=project_id)
+    if model is not None:
+        query = query.filter_by(model=model)
+    if status_filter is not None:
+        query = query.filter_by(status=status_filter)
+    return query.order_by(Trace.created_at.desc())
 
 
 @router.post("/traces", status_code=201)
@@ -80,25 +104,55 @@ def list_traces(
     membership: ProjectMembership = Depends(get_project_membership),
     db: Session = Depends(get_db),
 ):
-    query = db.query(Trace).filter_by(project_id=project_id)
-    if model is not None:
-        query = query.filter_by(model=model)
-    if status_filter is not None:
-        query = query.filter_by(status=status_filter)
+    query = _filtered_traces_query(db, project_id, model, status_filter)
 
     total = query.with_entities(func.count(Trace.id)).scalar()
-    items = (
-        query.order_by(Trace.created_at.desc())
-        .offset(offset)
-        .limit(limit)
-        .all()
-    )
+    items = query.offset(offset).limit(limit).all()
 
     return TraceListOut(
         items=[TraceOut.model_validate(t) for t in items],
         total=total,
         limit=limit,
         offset=offset,
+    )
+
+
+@router.get("/projects/{project_id}/traces/export")
+def export_traces(
+    project_id: str,
+    model: str | None = Query(default=None),
+    status_filter: str | None = Query(default=None, alias="status"),
+    format: str = Query(default="csv", pattern="^(csv|json)$"),
+    membership: ProjectMembership = Depends(get_project_membership),
+    db: Session = Depends(get_db),
+):
+    # Same filters and ordering as list_traces, but no limit/offset - export
+    # means "everything matching," not one page of it. Registered before
+    # GET /traces/{trace_id} so FastAPI doesn't match "export" as a trace ID.
+    traces = _filtered_traces_query(db, project_id, model, status_filter).all()
+    filename = f"traces_{project_id}.{format}"
+
+    if format == "json":
+        body = json.dumps(
+            [TraceOut.model_validate(t).model_dump(mode="json") for t in traces]
+        )
+        return StreamingResponse(
+            iter([body]),
+            media_type="application/json",
+            headers={"Content-Disposition": f'attachment; filename="{filename}"'},
+        )
+
+    buffer = io.StringIO()
+    writer = csv.writer(buffer)
+    writer.writerow(TRACE_EXPORT_COLUMNS)
+    for t in traces:
+        writer.writerow([getattr(t, col) for col in TRACE_EXPORT_COLUMNS])
+    buffer.seek(0)
+
+    return StreamingResponse(
+        iter([buffer.getvalue()]),
+        media_type="text/csv",
+        headers={"Content-Disposition": f'attachment; filename="{filename}"'},
     )
 
 

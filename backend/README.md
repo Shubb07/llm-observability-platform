@@ -103,5 +103,6 @@ building, so applying it to an existing dev database is a no-op stamp, not new D
 | `DELETE /api/v1/projects/{id}/members/{user_id}` | JWT, Admin | Remove a member — refuses to remove the last Admin |
 | `POST /api/v1/traces` | API key (`X-API-Key`) | Ingest a batch of traces (idempotent on `client_trace_id`) — this is what the SDK calls |
 | `GET /api/v1/projects/{id}/traces` | JWT | List/filter traces (by model, status), paginated |
+| `GET /api/v1/projects/{id}/traces/export` | JWT | Export all matching traces (same `model`/`status` filters, no page cap) as `?format=csv` (default) or `json` |
 | `GET /api/v1/projects/{id}/traces/{trace_id}` | JWT | Get one trace's full detail |
 | `GET /api/v1/projects/{id}/analytics` | JWT | Request volume, error rate, p50/p95/p99 latency, tokens, cost over `time_range` (`24h`\|`7d`\|`30d`), optional `group_by=model` |

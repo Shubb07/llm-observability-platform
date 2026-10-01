@@ -162,3 +162,103 @@ def test_get_single_trace_not_found(client, auth_headers, project):
         headers=auth_headers,
     )
     assert response.status_code == 404
+
+
+def test_export_traces_csv_contains_all_rows_and_header(client, auth_headers, project):
+    payload = {
+        "traces": [
+            {"model": "gpt-4o", "provider": "openai", "prompt": "a", "latency_ms": 10.0, "status": "success"},
+            {"model": "gpt-4o", "provider": "openai", "prompt": "b", "latency_ms": 20.0, "status": "error", "error_message": "boom"},
+        ]
+    }
+    client.post("/api/v1/traces", json=payload, headers={"X-API-Key": project["api_key"]})
+
+    response = client.get(f"/api/v1/projects/{project['id']}/traces/export", headers=auth_headers)
+
+    assert response.status_code == 200
+    assert response.headers["content-type"].startswith("text/csv")
+    assert "attachment" in response.headers["content-disposition"]
+
+    lines = response.text.strip().splitlines()
+    assert lines[0] == (
+        "id,client_trace_id,model,provider,prompt,completion,prompt_tokens,"
+        "completion_tokens,latency_ms,cost,status,error_message,tags,created_at"
+    )
+    assert len(lines) == 3  # header + 2 rows
+    assert "boom" in response.text
+
+
+def test_export_traces_json_format(client, auth_headers, project):
+    payload = {"traces": [{"model": "gpt-4o", "provider": "openai", "prompt": "hi", "latency_ms": 10.0}]}
+    client.post("/api/v1/traces", json=payload, headers={"X-API-Key": project["api_key"]})
+
+    response = client.get(
+        f"/api/v1/projects/{project['id']}/traces/export",
+        params={"format": "json"},
+        headers=auth_headers,
+    )
+
+    assert response.status_code == 200
+    assert response.headers["content-type"].startswith("application/json")
+    body = response.json()
+    assert len(body) == 1
+    assert body[0]["prompt"] == "hi"
+
+
+def test_export_traces_applies_status_filter(client, auth_headers, project):
+    payload = {
+        "traces": [
+            {"model": "gpt-4o", "provider": "openai", "prompt": "ok", "latency_ms": 10.0, "status": "success"},
+            {"model": "gpt-4o", "provider": "openai", "prompt": "bad", "latency_ms": 10.0, "status": "error", "error_message": "x"},
+        ]
+    }
+    client.post("/api/v1/traces", json=payload, headers={"X-API-Key": project["api_key"]})
+
+    response = client.get(
+        f"/api/v1/projects/{project['id']}/traces/export",
+        params={"format": "json", "status": "error"},
+        headers=auth_headers,
+    )
+
+    body = response.json()
+    assert len(body) == 1
+    assert body[0]["prompt"] == "bad"
+
+
+def test_export_traces_not_capped_at_default_page_size(client, auth_headers, project):
+    # The list endpoint defaults to 50 results per page - export must not
+    # inherit that cap, since "export everything" is the whole point.
+    traces = [
+        {"model": "gpt-4o", "provider": "openai", "prompt": f"trace {i}", "latency_ms": 1.0}
+        for i in range(55)
+    ]
+    client.post("/api/v1/traces", json={"traces": traces}, headers={"X-API-Key": project["api_key"]})
+
+    response = client.get(
+        f"/api/v1/projects/{project['id']}/traces/export",
+        params={"format": "json"},
+        headers=auth_headers,
+    )
+
+    assert len(response.json()) == 55
+
+
+def test_export_traces_requires_membership(client, project):
+    other_payload = {"email": "export-outsider@example.com", "password": "supersecret123"}
+    client.post("/api/v1/auth/register", json=other_payload)
+    other_login = client.post("/api/v1/auth/login", json=other_payload).json()
+    other_headers = {"Authorization": f"Bearer {other_login['access_token']}"}
+
+    response = client.get(f"/api/v1/projects/{project['id']}/traces/export", headers=other_headers)
+
+    assert response.status_code == 403
+
+
+def test_export_traces_rejects_unknown_format(client, auth_headers, project):
+    response = client.get(
+        f"/api/v1/projects/{project['id']}/traces/export",
+        params={"format": "xml"},
+        headers=auth_headers,
+    )
+
+    assert response.status_code == 422
