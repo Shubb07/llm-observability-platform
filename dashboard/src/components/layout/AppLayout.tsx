@@ -1,10 +1,13 @@
-import { Outlet, NavLink } from "react-router-dom";
+import { Outlet, NavLink, useMatch } from "react-router-dom";
 import { useAuth } from "../../context/AuthContext";
 import BrandIcon from "../BrandIcon";
 import SidebarStatus from "./SidebarStatus";
 
 export default function AppLayout() {
   const { user, logout } = useAuth();
+  const match = useMatch("/projects/:projectId/*");
+  const isNewProject = match?.params.projectId === "new";
+  const projectId = !isNewProject ? match?.params.projectId : null;
 
   return (
     <div className="app-layout">
@@ -20,10 +23,24 @@ export default function AppLayout() {
           <p className="sidebar-section-label">Navigation</p>
           <div className="sidebar-nav">
             <NavLink to="/projects" end className="sidebar-nav-link">
-              📋 Projects
+              📋 All Projects
             </NavLink>
           </div>
         </nav>
+
+        {projectId && (
+          <nav className="sidebar-section">
+            <p className="sidebar-section-label">Current Project</p>
+            <div className="sidebar-nav">
+              <NavLink to={`/projects/${projectId}/traces`} className="sidebar-nav-link">
+                🔭 Traces
+              </NavLink>
+              <NavLink to={`/projects/${projectId}/settings`} className="sidebar-nav-link">
+                ⚙️ Settings
+              </NavLink>
+            </div>
+          </nav>
+        )}
 
         <SidebarStatus />
         <div className="sidebar-footer">

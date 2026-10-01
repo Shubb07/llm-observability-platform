@@ -153,3 +153,10 @@ Add an entry each day so end-of-day reporting is just copying this section. Form
   - Trace Explorer: `GET /api/v1/projects/{id}/traces` with filters (model, status),
     paginated table, trace detail side panel
 
+### 2026-10-01 (Dashboard Settings & Navigation)
+
+- **Sagar:** added project-specific settings and navigation.
+  - Built `ProjectSettingsPage` at `/projects/:projectId/settings` to allow users to view their project details and copy their API keys (critical for SDK setup).
+  - Updated `AppLayout` to conditionally render project-specific sidebar links ("🔭 Traces" and "⚙️ Settings") only when actively viewing a project context (`useMatch("/projects/:projectId/*")`).
+  - Added the route for `ProjectSettingsPage` to `App.tsx`.
+  - Type-checked and linted the codebase to ensure no regressions.

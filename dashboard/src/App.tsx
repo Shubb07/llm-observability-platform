@@ -8,6 +8,7 @@ import RegisterPage from "./pages/RegisterPage";
 import ProjectsPage from "./pages/ProjectsPage";
 import CreateProjectPage from "./pages/CreateProjectPage";
 import TracesPage from "./pages/TracesPage";
+import ProjectSettingsPage from "./pages/ProjectSettingsPage";
 
 const queryClient = new QueryClient({
   defaultOptions: {
@@ -34,6 +35,7 @@ export default function App() {
                 <Route path="/projects/new" element={<CreateProjectPage />} />
 
                 <Route path="/projects/:projectId/traces" element={<TracesPage />} />
+                <Route path="/projects/:projectId/settings" element={<ProjectSettingsPage />} />
               </Route>
             </Route>
 
