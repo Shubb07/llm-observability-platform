@@ -7,7 +7,7 @@ from app.api.deps import get_project_membership
 from app.core.db import get_db
 from app.models.project import ProjectMembership
 from app.models.trace import Trace
-from app.schemas.analytics import AnalyticsMetrics, AnalyticsOut, ModelBreakdown
+from app.schemas.analytics import AnalyticsMetrics, AnalyticsOut, ModelBreakdown, TimeseriesOut, TimeseriesPoint
 
 router = APIRouter(prefix="/api/v1", tags=["analytics"])
 
@@ -16,6 +16,17 @@ TIME_RANGES = {
     "7d": timedelta(days=7),
     "30d": timedelta(days=30),
 }
+
+BUCKET_SIZES = {
+    "hour": timedelta(hours=1),
+    "day": timedelta(days=1),
+}
+
+# Hourly buckets read fine over a day but turn into a 720-point chart over a
+# month - default to the granularity that's actually useful to look at,
+# while still letting the caller override it (?bucket=hour on a 30d window
+# is a legitimate "zoom in" request, not an error).
+DEFAULT_BUCKET_FOR_RANGE = {"24h": "hour", "7d": "day", "30d": "day"}
 
 
 def _percentile(sorted_values: list[float], pct: float) -> float:
@@ -104,3 +115,65 @@ def get_analytics(
         ]
 
     return AnalyticsOut(time_range=time_range, overall=overall, by_model=by_model)
+
+
+def _floor_to_bucket(dt: datetime, bucket: str) -> datetime:
+    if bucket == "hour":
+        return dt.replace(minute=0, second=0, microsecond=0)
+    return dt.replace(hour=0, minute=0, second=0, microsecond=0)  # "day"
+
+
+@router.get("/projects/{project_id}/analytics/timeseries", response_model=TimeseriesOut)
+def get_analytics_timeseries(
+    project_id: str,
+    time_range: str = Query(default="24h"),
+    bucket: str | None = Query(default=None),
+    model: str | None = Query(default=None),
+    membership: ProjectMembership = Depends(get_project_membership),
+    db: Session = Depends(get_db),
+):
+    """One point per time bucket instead of a single aggregate for the whole
+    window - what a chart-over-time needs that the plain /analytics endpoint
+    can't give it. Bucketed and aggregated in Python rather than with
+    date_trunc()/strftime() in SQL, for the same cross-database reason
+    _percentile() already is: Postgres (prod) and SQLite (tests) don't agree
+    on time-bucketing syntax, and this keeps both running the identical code
+    path instead of two queries that could quietly drift apart."""
+    if time_range not in TIME_RANGES:
+        raise HTTPException(
+            status.HTTP_422_UNPROCESSABLE_CONTENT,
+            f"time_range must be one of {sorted(TIME_RANGES)}",
+        )
+    resolved_bucket = bucket or DEFAULT_BUCKET_FOR_RANGE[time_range]
+    if resolved_bucket not in BUCKET_SIZES:
+        raise HTTPException(
+            status.HTTP_422_UNPROCESSABLE_CONTENT,
+            f"bucket must be one of {sorted(BUCKET_SIZES)}",
+        )
+
+    now = datetime.now(timezone.utc).replace(tzinfo=None)
+    since = now - TIME_RANGES[time_range]
+    bucket_size = BUCKET_SIZES[resolved_bucket]
+
+    query = db.query(Trace).filter(Trace.project_id == project_id, Trace.created_at >= since)
+    if model is not None:
+        query = query.filter(Trace.model == model)
+    traces = query.all()
+
+    grouped: dict[datetime, list[Trace]] = {}
+    for t in traces:
+        grouped.setdefault(_floor_to_bucket(t.created_at, resolved_bucket), []).append(t)
+
+    # Build every bucket boundary across the window, not just the ones that
+    # happen to have data - a chart needs a continuous x-axis, and a gap
+    # where a bucket is simply missing would read as "data lost" rather
+    # than "nothing happened in that hour."
+    points: list[TimeseriesPoint] = []
+    cursor = _floor_to_bucket(since, resolved_bucket)
+    end = _floor_to_bucket(now, resolved_bucket)
+    while cursor <= end:
+        metrics = _compute_metrics(grouped.get(cursor, []))
+        points.append(TimeseriesPoint(bucket_start=cursor, **metrics.model_dump()))
+        cursor += bucket_size
+
+    return TimeseriesOut(time_range=time_range, bucket=resolved_bucket, model=model, points=points)

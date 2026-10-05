@@ -106,3 +106,4 @@ building, so applying it to an existing dev database is a no-op stamp, not new D
 | `GET /api/v1/projects/{id}/traces/export` | JWT | Export all matching traces (same `model`/`status` filters, no page cap) as `?format=csv` (default) or `json` |
 | `GET /api/v1/projects/{id}/traces/{trace_id}` | JWT | Get one trace's full detail |
 | `GET /api/v1/projects/{id}/analytics` | JWT | Request volume, error rate, p50/p95/p99 latency, tokens, cost over `time_range` (`24h`\|`7d`\|`30d`), optional `group_by=model` |
+| `GET /api/v1/projects/{id}/analytics/timeseries` | JWT | Same metrics as a series of points, one per `bucket` (`hour`\|`day`, default `hour` for 24h and `day` otherwise). Every bucket in the window is returned, including empty ones, so charts have no gaps. Optional `model` filter. |

@@ -1,3 +1,5 @@
+from datetime import datetime
+
 from pydantic import BaseModel
 
 
@@ -19,3 +21,14 @@ class AnalyticsOut(BaseModel):
     time_range: str
     overall: AnalyticsMetrics
     by_model: list[ModelBreakdown] | None = None
+
+
+class TimeseriesPoint(AnalyticsMetrics):
+    bucket_start: datetime
+
+
+class TimeseriesOut(BaseModel):
+    time_range: str
+    bucket: str
+    model: str | None = None
+    points: list[TimeseriesPoint]

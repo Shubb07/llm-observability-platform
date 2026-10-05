@@ -109,3 +109,90 @@ def test_time_range_excludes_old_traces(client, auth_headers, project, db_sessio
         f"/api/v1/projects/{project['id']}/analytics", params={"time_range": "30d"}, headers=auth_headers
     )
     assert wider_range.json()["overall"]["request_volume"] == 1
+
+
+def test_timeseries_returns_continuous_buckets_even_when_empty(client, auth_headers, project):
+    response = client.get(
+        f"/api/v1/projects/{project['id']}/analytics/timeseries", headers=auth_headers
+    )
+
+    assert response.status_code == 200
+    body = response.json()
+    assert body["bucket"] == "hour"  # default for 24h
+    # No gaps: a chart needs a point for every hour in the window, not only
+    # the hours that happened to have traffic.
+    assert len(body["points"]) >= 24
+    assert all(p["request_volume"] == 0 for p in body["points"])
+
+
+def test_timeseries_default_bucket_is_day_for_7d(client, auth_headers, project):
+    response = client.get(
+        f"/api/v1/projects/{project['id']}/analytics/timeseries",
+        params={"time_range": "7d"},
+        headers=auth_headers,
+    )
+
+    body = response.json()
+    assert body["bucket"] == "day"
+    assert 7 <= len(body["points"]) <= 9
+
+
+def test_timeseries_puts_each_trace_in_its_own_hour(client, auth_headers, project, db_session):
+    two_hours_ago = datetime.now(timezone.utc).replace(tzinfo=None, minute=0, second=0, microsecond=0) - timedelta(hours=2)
+    for _ in range(2):
+        db_session.add(Trace(
+            project_id=project["id"], model="gpt-4o", provider="openai", prompt="p",
+            latency_ms=10.0, created_at=two_hours_ago + timedelta(minutes=15),
+        ))
+    db_session.commit()
+
+    response = client.get(
+        f"/api/v1/projects/{project['id']}/analytics/timeseries", headers=auth_headers
+    )
+    points = response.json()["points"]
+
+    hit = [p for p in points if p["request_volume"] > 0]
+    assert len(hit) == 1
+    assert hit[0]["request_volume"] == 2
+    assert hit[0]["bucket_start"].startswith(two_hours_ago.isoformat()[:13])  # same hour
+
+
+def test_timeseries_model_filter_applies(client, auth_headers, project):
+    payload = {
+        "traces": [
+            {"model": "gpt-4o", "provider": "openai", "prompt": "p", "latency_ms": 10.0},
+            {"model": "claude-sonnet-5", "provider": "anthropic", "prompt": "p", "latency_ms": 10.0},
+        ]
+    }
+    client.post("/api/v1/traces", json=payload, headers={"X-API-Key": project["api_key"]})
+
+    response = client.get(
+        f"/api/v1/projects/{project['id']}/analytics/timeseries",
+        params={"model": "gpt-4o"},
+        headers=auth_headers,
+    )
+
+    body = response.json()
+    assert body["model"] == "gpt-4o"
+    assert sum(p["request_volume"] for p in body["points"]) == 1
+
+
+def test_timeseries_rejects_invalid_bucket(client, auth_headers, project):
+    response = client.get(
+        f"/api/v1/projects/{project['id']}/analytics/timeseries",
+        params={"bucket": "week"},
+        headers=auth_headers,
+    )
+    assert response.status_code == 422
+
+
+def test_timeseries_requires_membership(client, project):
+    other_payload = {"email": "ts-outsider@example.com", "password": "supersecret123"}
+    client.post("/api/v1/auth/register", json=other_payload)
+    other_login = client.post("/api/v1/auth/login", json=other_payload).json()
+    other_headers = {"Authorization": f"Bearer {other_login['access_token']}"}
+
+    response = client.get(
+        f"/api/v1/projects/{project['id']}/analytics/timeseries", headers=other_headers
+    )
+    assert response.status_code == 403
