@@ -15,8 +15,14 @@ interface Props {
   data: (AnalyticsMetrics & { model: string })[];
 }
 
-// Custom colors for bars to give a premium feel
-const colors = ["#14b8a6", "#22d3ee", "#fb923c", "#f472b6", "#a855f7"];
+// Categorical palette, validated for the dark surface this app uses
+// (scripts/validate_palette.js, --mode dark: lightness band, chroma floor,
+// CVD separation and normal-vision separation all pass for this order).
+// All three charts below index into this with the SAME `data` array and the
+// SAME index (no per-chart offset), so a given model keeps the same color
+// in every chart - previously each chart offset its index by one more than
+// the last, so the same model showed a different color in each chart.
+const colors = ["#3987e5", "#d95926", "#199e70", "#9085e9"];
 
 const CustomTooltip = ({ active, payload, label, formatter }: any) => {
   if (active && payload && payload.length) {
@@ -123,7 +129,7 @@ export default function ModelCharts({ data }: Props) {
               <Tooltip content={<CustomTooltip formatter={(val: number) => formatCost(val)} />} cursor={{ fill: "var(--color-bg-tertiary)", opacity: 0.4 }} />
               <Bar dataKey="total_cost" name="Cost" radius={[4, 4, 0, 0]}>
                 {data.map((_, index) => (
-                  <Cell key={`cell-${index}`} fill={colors[(index + 1) % colors.length]} />
+                  <Cell key={`cell-${index}`} fill={colors[index % colors.length]} />
                 ))}
               </Bar>
             </BarChart>
@@ -158,7 +164,7 @@ export default function ModelCharts({ data }: Props) {
               <Tooltip content={<CustomTooltip formatter={(val: number) => formatLatency(val)} />} cursor={{ fill: "var(--color-bg-tertiary)", opacity: 0.4 }} />
               <Bar dataKey="p95_latency_ms" name="P95 Latency" radius={[4, 4, 0, 0]}>
                 {data.map((_, index) => (
-                  <Cell key={`cell-${index}`} fill={colors[(index + 2) % colors.length]} />
+                  <Cell key={`cell-${index}`} fill={colors[index % colors.length]} />
                 ))}
               </Bar>
             </BarChart>
