@@ -262,3 +262,23 @@ def test_export_traces_rejects_unknown_format(client, auth_headers, project):
     )
 
     assert response.status_code == 422
+
+
+def test_filtered_traces_query_has_no_order_by_before_count(client, project):
+    # Regression test for a Postgres-only bug: list_traces reuses this query
+    # for both COUNT(*) and the paginated SELECT. Postgres rejects an
+    # ORDER BY on a column that isn't in the SELECT list of an aggregate
+    # query ("column must appear in the GROUP BY clause or be used in an
+    # aggregate function") - SQLite accepts it silently, so this broke the
+    # Trace Explorer against the real database without failing any test here.
+    # Asserting on the compiled SQL catches it without needing a live
+    # Postgres connection.
+    from app.api.traces import _filtered_traces_query
+    from app.core.db import SessionLocal
+
+    db = SessionLocal()
+    query = _filtered_traces_query(db, project["id"], None, None)
+    compiled = str(query.statement.compile(compile_kwargs={"literal_binds": True}))
+    db.close()
+
+    assert "ORDER BY" not in compiled.upper()

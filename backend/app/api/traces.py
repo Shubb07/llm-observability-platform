@@ -27,13 +27,15 @@ def _filtered_traces_query(
     db: Session, project_id: str, model: str | None, status_filter: str | None
 ) -> SAQuery:
     """Shared by list_traces and export_traces so the two can never drift -
-    same filters, same project scoping, same ordering."""
+    same filters and project scoping. Ordering is applied by each caller, not
+    here: a count over a query with ORDER BY is rejected by Postgres, and
+    list_traces reuses this query for its count."""
     query = db.query(Trace).filter_by(project_id=project_id)
     if model is not None:
         query = query.filter_by(model=model)
     if status_filter is not None:
         query = query.filter_by(status=status_filter)
-    return query.order_by(Trace.created_at.desc())
+    return query
 
 
 @router.post("/traces", status_code=201)
@@ -107,7 +109,7 @@ def list_traces(
     query = _filtered_traces_query(db, project_id, model, status_filter)
 
     total = query.with_entities(func.count(Trace.id)).scalar()
-    items = query.offset(offset).limit(limit).all()
+    items = query.order_by(Trace.created_at.desc()).offset(offset).limit(limit).all()
 
     return TraceListOut(
         items=[TraceOut.model_validate(t) for t in items],
@@ -129,7 +131,7 @@ def export_traces(
     # Same filters and ordering as list_traces, but no limit/offset - export
     # means "everything matching," not one page of it. Registered before
     # GET /traces/{trace_id} so FastAPI doesn't match "export" as a trace ID.
-    traces = _filtered_traces_query(db, project_id, model, status_filter).all()
+    traces = _filtered_traces_query(db, project_id, model, status_filter).order_by(Trace.created_at.desc()).all()
     filename = f"traces_{project_id}.{format}"
 
     if format == "json":
