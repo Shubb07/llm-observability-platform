@@ -11,6 +11,7 @@ import {
   formatRelativeDate,
   formatTokens,
 } from "../utils/formatters";
+import ModelCharts from "../components/ModelCharts";
 
 const PAGE_SIZE = 50;
 
@@ -97,6 +98,10 @@ export default function TracesPage() {
             <Metric label="Total tokens" value={formatTokens(overall.total_tokens)} />
             <Metric label="Total cost" value={formatCost(overall.total_cost)} />
           </div>
+        )}
+
+        {analytics.data?.by_model && (
+          <ModelCharts data={analytics.data.by_model} />
         )}
 
         <div className="metrics-toolbar" style={{ marginTop: "var(--space-6)" }}>
