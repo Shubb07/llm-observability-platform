@@ -1,3 +1,4 @@
+from pydantic import field_validator
 from pydantic_settings import BaseSettings, SettingsConfigDict
 
 
@@ -7,6 +8,17 @@ class Settings(BaseSettings):
     # No default on purpose: the connection string (and its credentials) must
     # come from the environment / .env, never from source control.
     database_url: str
+
+    @field_validator("database_url")
+    @classmethod
+    def _use_psycopg_driver(cls, v: str) -> str:
+        # Managed Postgres providers (e.g. Render) hand out a plain
+        # "postgresql://" URL, which SQLAlchemy defaults to psycopg2 - but
+        # this project installs psycopg3. Force the "+psycopg" driver so
+        # both local (.env) and provider-supplied URLs work the same way.
+        if v.startswith("postgresql://"):
+            return "postgresql+psycopg://" + v[len("postgresql://"):]
+        return v
     jwt_secret: str = "change-me-in-production"
     jwt_algorithm: str = "HS256"
     jwt_expire_minutes: int = 60 * 24
