@@ -2,6 +2,7 @@ from contextlib import asynccontextmanager
 
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
+from mcp.server.transport_security import TransportSecuritySettings
 
 from app.api import analytics, auth, projects, traces
 from app.core.config import settings
@@ -11,7 +12,17 @@ from app.mcp_server import mcp
 # its own lifespan to start the task group behind it - Starlette never
 # forwards lifespan startup/shutdown to a mounted sub-app on its own, so
 # that lifespan has to be entered explicitly as part of this app's.
-mcp_asgi_app = mcp.streamable_http_app(streamable_http_path="/mcp")
+#
+# transport_security defaults to allow-listing only localhost Host headers
+# (DNS-rebinding protection aimed at a browser rebinding to a local stdio
+# bridge) - meaningless for a publicly deployed endpoint, and it would
+# reject every real request by Host header alone. The actual auth boundary
+# here is the per-request X-API-Key each tool checks, so disable it rather
+# than hardcode this service's hostname.
+mcp_asgi_app = mcp.streamable_http_app(
+    streamable_http_path="/mcp",
+    transport_security=TransportSecuritySettings(enable_dns_rebinding_protection=False),
+)
 
 
 @asynccontextmanager
