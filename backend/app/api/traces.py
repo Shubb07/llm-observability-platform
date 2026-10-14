@@ -8,7 +8,7 @@ from sqlalchemy import func
 from sqlalchemy.exc import IntegrityError
 from sqlalchemy.orm import Query as SAQuery, Session
 
-from app.api.deps import get_project_by_api_key, get_project_membership
+from app.api.deps import get_project_by_api_key, get_project_by_membership_or_api_key, get_project_membership
 from app.core.db import get_db
 from app.models.project import Project, ProjectMembership
 from app.models.trace import Trace
@@ -103,7 +103,7 @@ def list_traces(
     status_filter: str | None = Query(default=None, alias="status"),
     limit: int = Query(default=50, ge=1, le=200),
     offset: int = Query(default=0, ge=0),
-    membership: ProjectMembership = Depends(get_project_membership),
+    project: Project = Depends(get_project_by_membership_or_api_key),
     db: Session = Depends(get_db),
 ):
     query = _filtered_traces_query(db, project_id, model, status_filter)

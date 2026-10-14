@@ -3,9 +3,9 @@ from datetime import datetime, timedelta, timezone
 from fastapi import APIRouter, Depends, HTTPException, Query, status
 from sqlalchemy.orm import Session
 
-from app.api.deps import get_project_membership
+from app.api.deps import get_project_by_membership_or_api_key
 from app.core.db import get_db
-from app.models.project import ProjectMembership
+from app.models.project import Project
 from app.models.trace import Trace
 from app.schemas.analytics import AnalyticsMetrics, AnalyticsOut, ModelBreakdown, TimeseriesOut, TimeseriesPoint
 
@@ -81,7 +81,7 @@ def get_analytics(
     time_range: str = Query(default="24h"),
     model: str | None = Query(default=None),
     group_by: str | None = Query(default=None),
-    membership: ProjectMembership = Depends(get_project_membership),
+    project: Project = Depends(get_project_by_membership_or_api_key),
     db: Session = Depends(get_db),
 ):
     if time_range not in TIME_RANGES:
@@ -129,7 +129,7 @@ def get_analytics_timeseries(
     time_range: str = Query(default="24h"),
     bucket: str | None = Query(default=None),
     model: str | None = Query(default=None),
-    membership: ProjectMembership = Depends(get_project_membership),
+    project: Project = Depends(get_project_by_membership_or_api_key),
     db: Session = Depends(get_db),
 ):
     """One point per time bucket instead of a single aggregate for the whole
