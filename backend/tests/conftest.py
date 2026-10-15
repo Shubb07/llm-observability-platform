@@ -10,6 +10,7 @@ from sqlalchemy.orm import sessionmaker
 from sqlalchemy.pool import StaticPool
 
 from app.core.db import Base, get_db
+from app.core.rate_limit import reset_for_tests
 from app.main import app
 
 TEST_DATABASE_URL = "sqlite:///:memory:"
@@ -43,6 +44,7 @@ def client(db_engine):
     # want touched in tests. Table creation for tests is handled by db_engine.
     app.dependency_overrides[get_db] = override_get_db
     test_client = TestClient(app)
+    reset_for_tests()  # auth rate limiting is module-level state, shared across tests otherwise
     yield test_client
     app.dependency_overrides.clear()
 

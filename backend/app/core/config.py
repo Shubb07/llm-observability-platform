@@ -19,7 +19,10 @@ class Settings(BaseSettings):
         if v.startswith("postgresql://"):
             return "postgresql+psycopg://" + v[len("postgresql://"):]
         return v
-    jwt_secret: str = "change-me-in-production"
+    # No default on purpose, same reasoning as database_url: a well-known
+    # fallback secret would let anyone forge tokens if this var is ever left
+    # unset, silently, instead of the app failing to start.
+    jwt_secret: str
     jwt_algorithm: str = "HS256"
     jwt_expire_minutes: int = 60 * 24
     # Origins the dashboard is served from - browsers block cross-origin
