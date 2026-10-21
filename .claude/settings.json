@@ -5,7 +5,7 @@
         "hooks": [
           {
             "type": "command",
-            "command": "sdk/.venv/Scripts/python.exe scripts/record_claude_session_trace.py",
+            "command": "bash scripts/record_claude_session_trace.sh",
             "timeout": 10,
             "async": true
           }

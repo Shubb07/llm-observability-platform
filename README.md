@@ -42,3 +42,22 @@ llm-observability-platform/
 Backend v1 and the SDK are implemented and tested (see [`backend/README.md`](backend/README.md)
 and [`sdk/README.md`](sdk/README.md) for how to run each). Dashboard has not been started.
 See [`docs/HLD.md`](docs/HLD.md#build-order) for the planned build order.
+
+## Observing Claude Code itself
+
+A `Stop` hook ([`scripts/record_claude_session_trace.py`](scripts/record_claude_session_trace.py),
+wired up in `.claude/settings.json`) records every prompt/response pair *in this Claude Code
+session* as a trace, same as any other LLM call the SDK instruments — the point being that
+Claude itself is an LLM in use, so it should show up in its own observability platform too.
+
+It's stdlib-only (no `pip install`, no venv required) so it works for anyone who clones this
+repo with any Python 3 on PATH. One-time setup per person, per machine:
+
+1. Get a project API key from that project's dashboard settings page.
+2. Add it to `.claude/settings.local.json` (gitignored — never commit a real key here):
+   ```json
+   { "env": { "LLMOBS_API_KEY": "llmobs_..." } }
+   ```
+
+Without that key set, the hook does nothing and prints a one-time setup hint to stderr — it
+never blocks or interrupts the session either way.

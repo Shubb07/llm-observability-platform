@@ -10,11 +10,27 @@ transcript (which Claude Code already writes to disk) after each response
 completes, pulls the latest prompt/response pair out of it, and posts that
 to the same /api/v1/traces endpoint the SDK uses.
 
-Needs LLMOBS_API_KEY set in the environment (a project's API key, from its
-dashboard page) - never hardcode a real key here. If it's unset, or
-anything else goes wrong, this exits 0 and does nothing rather than
-interrupting the Claude Code session - same "never break the thing being
-observed" principle the SDK's transport.py follows.
+Standard-library only, deliberately: anyone who clones the repo, has any
+Python 3 on PATH, and sets their own LLMOBS_API_KEY should get this working
+immediately - no venv, no `pip install`, no dependency on the SDK package
+being set up. That's also why PRICING below duplicates three lines from
+sdk/llm_observability_sdk/pricing.py instead of importing it - pulling in
+the SDK package here would reintroduce exactly the setup dependency this
+script exists to avoid, for a lookup table small and stable enough that the
+duplication cost is lower than the coupling cost. Keep the two in sync if
+Claude's pricing changes.
+
+One-time setup (per person, per machine):
+    1. Get a project API key from the dashboard's project settings page.
+    2. Set it as LLMOBS_API_KEY in .claude/settings.local.json (gitignored -
+       never commit a real key):
+       { "env": { "LLMOBS_API_KEY": "llmobs_..." } }
+
+If the key is unset, or anything else goes wrong, this exits 0 and does
+nothing rather than interrupting the Claude Code session - same "never
+break the thing being observed" principle the SDK's transport.py follows.
+The one exception: a missing key prints a one-time setup hint to stderr,
+so "it's silently not working" is at least discoverable.
 """
 
 from __future__ import annotations
@@ -22,15 +38,28 @@ from __future__ import annotations
 import json
 import os
 import sys
-from datetime import datetime, timezone
-
-import requests
-
-sys.path.insert(0, os.path.join(os.path.dirname(__file__), "..", "sdk"))
-from llm_observability_sdk.pricing import estimate_cost  # noqa: E402
+import urllib.error
+import urllib.request
+from datetime import datetime
 
 BASE_URL = os.environ.get("LLMOBS_BASE_URL", "https://llm-observability-backend-48ov.onrender.com")
 API_KEY = os.environ.get("LLMOBS_API_KEY")
+
+# Mirrors sdk/llm_observability_sdk/pricing.py - see module docstring above
+# for why this is duplicated rather than imported.
+PRICING_PER_1K_TOKENS: dict[str, tuple[float, float]] = {
+    "claude-opus-5": (0.005, 0.025),
+    "claude-sonnet-5": (0.002, 0.010),
+    "claude-haiku-4-5": (0.001, 0.005),
+}
+
+
+def _estimate_cost(model: str, prompt_tokens: int, completion_tokens: int) -> float:
+    pricing = PRICING_PER_1K_TOKENS.get(model)
+    if pricing is None:
+        return 0.0
+    input_price, output_price = pricing
+    return (prompt_tokens / 1000) * input_price + (completion_tokens / 1000) * output_price
 
 
 def _parse_timestamp(value: str) -> datetime:
@@ -94,6 +123,12 @@ def find_last_exchange(transcript_path: str) -> tuple[dict, dict] | None:
 
 def main() -> None:
     if not API_KEY:
+        print(
+            "[llm-observability] LLMOBS_API_KEY not set - this prompt wasn't recorded. "
+            "Set it in .claude/settings.local.json to enable: "
+            '{ "env": { "LLMOBS_API_KEY": "llmobs_..." } }',
+            file=sys.stderr,
+        )
         return
 
     hook_input = json.load(sys.stdin)
@@ -131,20 +166,22 @@ def main() -> None:
                 "prompt_tokens": prompt_tokens,
                 "completion_tokens": completion_tokens,
                 "latency_ms": max(latency_ms, 0.0),
-                "cost": estimate_cost(model, prompt_tokens, completion_tokens),
+                "cost": _estimate_cost(model, prompt_tokens, completion_tokens),
                 "status": "success",
             }
         ]
     }
 
+    body = json.dumps(payload).encode("utf-8")
+    request = urllib.request.Request(
+        f"{BASE_URL}/api/v1/traces",
+        data=body,
+        method="POST",
+        headers={"Content-Type": "application/json", "X-API-Key": API_KEY},
+    )
     try:
-        requests.post(
-            f"{BASE_URL}/api/v1/traces",
-            json=payload,
-            headers={"X-API-Key": API_KEY},
-            timeout=5,
-        )
-    except requests.RequestException:
+        urllib.request.urlopen(request, timeout=5)
+    except (urllib.error.URLError, urllib.error.HTTPError):
         pass
 
 
