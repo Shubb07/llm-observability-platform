@@ -21,3 +21,7 @@ Thumbs.db
 
 # Logs
 *.log
+
+# Claude Code - local overrides can hold real API keys (e.g. LLMOBS_API_KEY
+# for the prompt-recording hook) - never committed, unlike .claude/settings.json
+.claude/settings.local.json
