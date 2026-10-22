@@ -16,6 +16,14 @@ PRICING_PER_1K_TOKENS: dict[str, tuple[float, float]] = {
     "claude-opus-5": (0.005, 0.025),
     "claude-sonnet-5": (0.002, 0.010),
     "claude-haiku-4-5": (0.001, 0.005),
+    # instrument_openai() resolves to these exact model strings via the
+    # API response's `response.model` - without entries here, every
+    # OpenAI-traced call silently recorded cost=0.0 regardless of usage.
+    "gpt-4o": (0.0025, 0.010),
+    "gpt-4o-mini": (0.00015, 0.0006),
+    "gpt-4-turbo": (0.010, 0.030),
+    "gpt-3.5-turbo": (0.0005, 0.0015),
+    "gemini-3.8-flash": (0.0001, 0.0004),
 }
 
 

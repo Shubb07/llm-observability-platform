@@ -13,3 +13,15 @@ def test_zero_tokens_costs_nothing():
 
 def test_unknown_model_returns_zero_rather_than_guessing():
     assert estimate_cost("some-future-model", prompt_tokens=1000, completion_tokens=1000) == 0.0
+
+
+def test_openai_models_are_priced():
+    # Previously missing entirely - every instrument_openai() trace silently
+    # recorded cost=0.0 regardless of real usage.
+    cost = estimate_cost("gpt-4o", prompt_tokens=1000, completion_tokens=500)
+    assert cost > 0.0
+
+
+def test_gemini_model_is_priced():
+    cost = estimate_cost("gemini-3.8-flash", prompt_tokens=1000, completion_tokens=500)
+    assert cost > 0.0

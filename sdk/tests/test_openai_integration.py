@@ -107,6 +107,23 @@ def test_traces_and_reraises_on_error(fake_transport):
     assert event.error_message == "rate limited"
 
 
+def test_streaming_call_passes_through_untraced(fake_transport):
+    # A real OpenAI Stream object has no .choices/.usage/.model - the
+    # success path previously accessed those unconditionally, so a
+    # stream=True call crashed with AttributeError even though the
+    # underlying API call succeeded. Confirm it's passed through instead.
+    stream_sentinel = object()
+    completions = FakeCompletions(response=stream_sentinel)
+    client = instrument_openai(FakeOpenAIClient(completions))
+
+    result = client.chat.completions.create(
+        model="gpt-4o", messages=[{"role": "user", "content": "hi"}], stream=True
+    )
+
+    assert result is stream_sentinel
+    assert fake_transport.events == []
+
+
 def test_does_not_mutate_call_arguments(fake_transport):
     response = FakeCompletion(
         model="gpt-4o", choices=[FakeChoice(message=FakeMessage(content="ok"))], usage=FakeUsage(1, 1)

@@ -121,6 +121,32 @@ def test_does_not_retry_client_error():
     transport.shutdown()
 
 
+def test_worker_survives_a_non_request_exception():
+    # A bug that previously killed the worker thread for the rest of the
+    # process: _send() only caught requests.RequestException, so anything
+    # else escaping session.post() (e.g. a TypeError from a non-serializable
+    # value) terminated _run()'s loop permanently - every event enqueued
+    # afterward sat in the queue forever with nothing left to drain it.
+    class ExplodingSession(FakeSession):
+        def post(self, url, json, headers, timeout):
+            if len(self.calls) == 0:
+                self.calls.append({"url": url, "json": json, "headers": headers})
+                raise TypeError("not JSON serializable")
+            return super().post(url, json, headers, timeout)
+
+    session = ExplodingSession()
+    transport = BackgroundTransport(
+        api_key="k", base_url="http://localhost:8000", session=session, flush_interval_seconds=0.1
+    )
+    transport.enqueue(make_event())
+    assert wait_until(lambda: len(session.calls) == 1)  # the exploding first batch
+
+    transport.enqueue(make_event())
+    assert wait_until(lambda: len(session.calls) == 2)  # thread is still alive for the second
+
+    transport.shutdown()
+
+
 def test_shutdown_drains_pending_events():
     session = FakeSession()
     transport = BackgroundTransport(

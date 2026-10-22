@@ -79,6 +79,22 @@ def test_traces_successful_message(fake_transport):
     assert event.cost == (10 / 1000) * 0.002 + (5 / 1000) * 0.010
 
 
+def test_streaming_call_passes_through_untraced(fake_transport):
+    # A real Anthropic stream object has no .content/.usage/.model - the
+    # success path previously accessed response.content unconditionally,
+    # crashing a stream=True call that had already succeeded against the
+    # real API. Confirm it's passed through instead.
+    stream_sentinel = object()
+    client = instrument_anthropic(FakeAnthropicClient(FakeMessages(response=stream_sentinel)))
+
+    result = client.messages.create(
+        model="claude-sonnet-5", max_tokens=1024, messages=[{"role": "user", "content": "hi"}], stream=True
+    )
+
+    assert result is stream_sentinel
+    assert fake_transport.events == []
+
+
 def test_traces_and_reraises_on_error(fake_transport):
     client = instrument_anthropic(
         FakeAnthropicClient(FakeMessages(exception=RuntimeError("overloaded")))

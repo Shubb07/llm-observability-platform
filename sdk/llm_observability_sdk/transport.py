@@ -58,14 +58,29 @@ class BackgroundTransport:
         while not self._stop_event.is_set():
             batch = self._collect_batch(timeout=self._flush_interval_seconds)
             if batch:
-                self._send(batch)
+                self._send_safely(batch)
 
         # Stop was requested — drain whatever is left before the thread exits.
         while True:
             batch = self._collect_batch(timeout=0)
             if not batch:
                 break
+            self._send_safely(batch)
+
+    def _send_safely(self, batch: list[TraceEvent]) -> None:
+        # _send() only expects requests.RequestException (network failures);
+        # anything else escaping it here - e.g. a TypeError from trying to
+        # JSON-serialize a non-serializable tag value - would otherwise kill
+        # this daemon thread outright. Once it's dead, enqueue() keeps
+        # silently accepting events forever with nothing left to drain them:
+        # unbounded memory growth, and every future trace for the rest of
+        # the process is lost with no indication to the application. Losing
+        # just this one batch is the same "degrade gracefully" tradeoff
+        # _send()'s own retry-then-drop logic already makes.
+        try:
             self._send(batch)
+        except Exception:
+            pass
 
     def _collect_batch(self, timeout: float) -> list[TraceEvent]:
         batch: list[TraceEvent] = []

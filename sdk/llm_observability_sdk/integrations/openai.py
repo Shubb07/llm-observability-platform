@@ -26,6 +26,14 @@ def instrument_openai(client: Any) -> Any:
     original_create = client.chat.completions.create
 
     def traced_create(*args: Any, **kwargs: Any) -> Any:
+        # Streaming isn't instrumented yet: original_create() returns a Stream
+        # object with no .choices/.usage/.model, which the success path below
+        # assumes unconditionally - capturing a streamed response properly
+        # means wrapping the stream's own iterator, not a follow-up read here.
+        # Pass it through untraced rather than crash the caller's stream.
+        if kwargs.get("stream"):
+            return original_create(*args, **kwargs)
+
         transport = get_transport()
         model = kwargs.get("model", "unknown")
         prompt = render_messages(kwargs.get("messages", []))

@@ -22,6 +22,12 @@ def instrument_anthropic(client: Any) -> Any:
     original_create = client.messages.create
 
     def traced_create(*args: Any, **kwargs: Any) -> Any:
+        # Streaming isn't instrumented yet - see the identical guard in
+        # integrations/openai.py for why this has to bail out before the
+        # success path, which assumes a completed Message, not a Stream.
+        if kwargs.get("stream"):
+            return original_create(*args, **kwargs)
+
         transport = get_transport()
         model = kwargs.get("model", "unknown")
         prompt = render_messages(kwargs.get("messages", []))
