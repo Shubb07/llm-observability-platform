@@ -79,15 +79,21 @@ def get_project_by_membership_or_api_key(
     token plus membership (what the dashboard uses). Kept separate from
     get_project_by_api_key because that one is ingest-only and never checks
     project_id against the URL - here the key must match the project being
-    asked about, not just any active project."""
+    asked about, not just any active project.
+
+    Deliberately does NOT check project.status: archiving a project stops
+    new ingestion (get_project_by_api_key enforces that), but its existing
+    traces and analytics stay readable regardless of auth method (see
+    archive_project's docstring in projects.py) - this used to reject reads
+    from an archived project's API key while the JWT path allowed them,
+    silently giving two different answers to the same read depending only
+    on which credential made the request."""
     if x_api_key is not None:
         project = db.query(Project).filter_by(api_key=x_api_key).first()
         if project is None:
             raise HTTPException(status.HTTP_401_UNAUTHORIZED, "Invalid API key")
         if project.id != project_id:
             raise HTTPException(status.HTTP_403_FORBIDDEN, "API key does not grant access to this project")
-        if project.status != "ACTIVE":
-            raise HTTPException(status.HTTP_403_FORBIDDEN, "Project is not active")
         return project
 
     if credentials is None:

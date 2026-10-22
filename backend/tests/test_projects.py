@@ -63,7 +63,7 @@ def test_archive_project_blocks_ingestion_but_not_reads(client, auth_headers):
     blocked = client.post("/api/v1/traces", json=trace_payload, headers={"X-API-Key": api_key})
     assert blocked.status_code == 403
 
-    # But existing data is still fully readable.
+    # But existing data is still fully readable, via JWT...
     listed = client.get(f"/api/v1/projects/{created['id']}/traces", headers=auth_headers)
     assert listed.status_code == 200
     assert listed.json()["total"] == 1
@@ -71,6 +71,21 @@ def test_archive_project_blocks_ingestion_but_not_reads(client, auth_headers):
     get_resp = client.get(f"/api/v1/projects/{created['id']}", headers=auth_headers)
     assert get_resp.status_code == 200
     assert get_resp.json()["status"] == "ARCHIVED"
+
+    # ...and via the project's own API key (regression test: this used to
+    # 403 with "Project is not active" even though the JWT path above
+    # allowed the identical read - reads shouldn't depend on which
+    # credential asked, only ingestion should be blocked once archived).
+    listed_via_key = client.get(
+        f"/api/v1/projects/{created['id']}/traces", headers={"X-API-Key": api_key}
+    )
+    assert listed_via_key.status_code == 200
+    assert listed_via_key.json()["total"] == 1
+
+    analytics_via_key = client.get(
+        f"/api/v1/projects/{created['id']}/analytics", headers={"X-API-Key": api_key}
+    )
+    assert analytics_via_key.status_code == 200
 
 
 def test_archive_project_is_idempotent(client, auth_headers):

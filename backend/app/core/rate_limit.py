@@ -23,9 +23,17 @@ _attempts: dict[str, list[float]] = defaultdict(list)
 def _client_ip(request: Request) -> str:
     # Render (and most PaaS) terminate TLS at a proxy in front of the app,
     # so request.client.host would be the proxy's address, not the caller's.
+    #
+    # The LEFTMOST entry in X-Forwarded-For is whatever the original caller
+    # claimed, attacker-controlled - a single bare `curl -H "X-Forwarded-For:
+    # <anything>"` sets it, which was silently defeating this rate limiter by
+    # bucketing every attempt into a different, fresh IP. Render's edge is a
+    # single trusted hop in front of this app and APPENDS the connection's
+    # real address as the last entry rather than overwriting the header, so
+    # the RIGHTMOST entry is the one value here that wasn't caller-supplied.
     forwarded = request.headers.get("x-forwarded-for")
     if forwarded:
-        return forwarded.split(",")[0].strip()
+        return forwarded.split(",")[-1].strip()
     return request.client.host if request.client else "unknown"
 
 

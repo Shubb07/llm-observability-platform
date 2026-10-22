@@ -83,17 +83,27 @@ def ingest_traces(
         new_traces.append(Trace(project_id=project.id, **trace_in.model_dump()))
     skipped = len(payload.traces) - len(new_traces)
 
-    db.add_all(new_traces)
-    try:
-        db.commit()
-    except IntegrityError:
-        # Lost the race: a concurrent request inserted one of these
-        # client_trace_ids between our check and this commit. Safe to treat
-        # the whole attempted insert as already-delivered rather than 500.
-        db.rollback()
-        return {"ingested": 0, "skipped_duplicates": len(payload.traces)}
+    # Each trace gets its own SAVEPOINT rather than one db.add_all() + single
+    # commit. A concurrent request can insert one of these client_trace_ids
+    # between our existence check above and this commit - with a single bulk
+    # commit, that one collision rolled back the *entire* batch and got
+    # reported as "all duplicates, already delivered," silently dropping
+    # every trace that had nothing to do with the collision (including ones
+    # with no client_trace_id at all, which are never actually duplicates).
+    # Flushing per-row costs more round trips for a bigger batch, but these
+    # batches are capped small (the SDK's default batch_size is 20) and
+    # correctness here matters more than a few extra round trips.
+    race_skipped = 0
+    for trace in new_traces:
+        try:
+            with db.begin_nested():
+                db.add(trace)
+                db.flush()
+        except IntegrityError:
+            race_skipped += 1
 
-    return {"ingested": len(new_traces), "skipped_duplicates": skipped}
+    db.commit()
+    return {"ingested": len(new_traces) - race_skipped, "skipped_duplicates": skipped + race_skipped}
 
 
 @router.get("/projects/{project_id}/traces", response_model=TraceListOut)
