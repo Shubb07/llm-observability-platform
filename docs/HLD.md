@@ -44,11 +44,11 @@ Python SDK  --batched traces-->  FastAPI backend  --write-->  PostgreSQL
 | Python SDK | `pip`-installable package, wraps LLM provider calls, async batching + local buffering with retry/backoff | Not started (Phase 1) |
 | Backend API | FastAPI, routers in `backend/app/api/` | **Built** — auth, projects, trace ingestion/query |
 | Storage | PostgreSQL (prod/dev via `infra/docker-compose.yml`), SQLite in-memory (tests) | **Built** |
-| ORM / models | SQLAlchemy 2.0 (`backend/app/models/`) | **Built** — `User`, `Project`, `ProjectMembership`, `Trace` |
+| ORM / models | SQLAlchemy 2.0 (`backend/app/models/`) | **Built** — `User`, `Project`, `ProjectMembership`, `Trace`, `Evaluation` |
 | Auth | JWT (HS256, `python-jose`) for dashboard users; per-project API key for SDK ingestion; `bcrypt` for password hashing | **Built** |
 | Dashboard | React (Vite), TanStack Query for data fetching, Recharts for analytics charts | Not started (Phase 2–3) |
 | Background workers | APScheduler in-process initially → Celery + Redis once evaluation volume needs independently scalable workers | Not started (Phase 4/5) |
-| Evaluation Engine | Heuristic checks (format/regex) + LLM-as-judge scoring against a configurable rubric | Not started (Phase 4) |
+| Evaluation Engine | Heuristic checks (format/regex) + LLM-as-judge scoring against a configurable rubric | Heuristics **built** (`format_compliance`, `safety_keywords`, run synchronously post-ingest) — LLM-as-judge not started |
 | Alerting Service | Rule evaluation (metric, operator, threshold, time window) against recent trace metrics | Not started (Phase 5) |
 | Notification Channels | Email (SMTP) + generic webhook POST | Not started (Phase 5) |
 
@@ -66,8 +66,9 @@ something the next phase needs (no phase depends on something not yet built).
 4. **Analytics dashboard** — backend aggregation endpoints (p50/p95/p99 latency, error rate,
    token/cost over time, grouped by model/tag) + Recharts views. Needs trace volume from
    step 2 to be meaningful to look at.
-5. **Evaluation engine** — heuristics run synchronously post-ingest at first; LLM-as-judge
-   runs via APScheduler polling `PENDING` evaluation jobs. Needs traces (step 2) and a place
+5. **Evaluation engine** — heuristics run synchronously post-ingest at first (**built**:
+   `format_compliance`, `safety_keywords`); LLM-as-judge (relevance, faithfulness) still to
+   come, via APScheduler polling `PENDING` evaluation jobs. Needs traces (step 2) and a place
    to show scores (step 3's trace detail view).
 6. **Alerting** — rule CRUD + APScheduler job checking rules against recent metrics from
    step 4; email/webhook delivery.

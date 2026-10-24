@@ -40,3 +40,4 @@ class Trace(Base):
     created_at: Mapped[datetime] = mapped_column(DateTime, default=lambda: datetime.now(timezone.utc), index=True)
 
     project: Mapped["Project"] = relationship()
+    evaluations: Mapped[list["Evaluation"]] = relationship(viewonly=True, order_by="Evaluation.created_at")

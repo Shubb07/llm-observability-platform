@@ -12,7 +12,7 @@ the SDK or dashboard existing yet: user auth, project management, and trace inge
 | `app/models/`     | Implemented | SQLAlchemy models: `User`, `Project`, `ProjectMembership`, `Trace` |
 | `app/schemas/`    | Implemented | Pydantic request/response models |
 | `app/workers/`    | Placeholder | Background jobs — pick up new traces, run evaluators, check alert thresholds |
-| `app/evaluation/` | Placeholder | Evaluation engine — relevance, faithfulness, safety, format compliance scoring |
+| `app/evaluation/` | Partially implemented | Heuristic evaluators (`format_compliance`, `safety_keywords`) run synchronously right after a successful trace is ingested — see `heuristics.py`. LLM-as-judge scoring (relevance, faithfulness) is not built; those genuinely need an LLM call, not a regex, and are meant to run asynchronously via a scheduler, not inline during ingestion. |
 | `app/alerting/`   | Placeholder | Alert rule evaluation against incoming metrics, notification triggering |
 | `app/auth/`       | Placeholder | Reserved — auth is currently implemented in `app/api/auth.py` + `app/core/security.py`; split out here if it grows (e.g. OAuth) |
 
@@ -104,6 +104,6 @@ building, so applying it to an existing dev database is a no-op stamp, not new D
 | `POST /api/v1/traces` | API key (`X-API-Key`) | Ingest a batch of traces (idempotent on `client_trace_id`) — this is what the SDK calls |
 | `GET /api/v1/projects/{id}/traces` | JWT | List/filter traces (by model, status), paginated |
 | `GET /api/v1/projects/{id}/traces/export` | JWT | Export all matching traces (same `model`/`status` filters, no page cap) as `?format=csv` (default) or `json` |
-| `GET /api/v1/projects/{id}/traces/{trace_id}` | JWT | Get one trace's full detail |
+| `GET /api/v1/projects/{id}/traces/{trace_id}` | JWT | Get one trace's full detail, including its evaluation results |
 | `GET /api/v1/projects/{id}/analytics` | JWT | Request volume, error rate, p50/p95/p99 latency, tokens, cost over `time_range` (`24h`\|`7d`\|`30d`), optional `group_by=model` |
 | `GET /api/v1/projects/{id}/analytics/timeseries` | JWT | Same metrics as a series of points, one per `bucket` (`hour`\|`day`, default `hour` for 24h and `day` otherwise). Every bucket in the window is returned, including empty ones, so charts have no gaps. Optional `model` filter. |

@@ -10,6 +10,7 @@ from sqlalchemy.orm import Query as SAQuery, Session
 
 from app.api.deps import get_project_by_api_key, get_project_by_membership_or_api_key, get_project_membership
 from app.core.db import get_db
+from app.evaluation import run_heuristic_evaluators
 from app.models.project import Project, ProjectMembership
 from app.models.trace import Trace
 from app.schemas.trace import TraceBatchIn, TraceListOut, TraceOut
@@ -101,6 +102,15 @@ def ingest_traces(
                 db.flush()
         except IntegrityError:
             race_skipped += 1
+            continue
+
+        if trace.status == "success":
+            # Must never affect trace storage - the trace above is already
+            # flushed and will be committed regardless of what happens here.
+            try:
+                run_heuristic_evaluators(trace, db)
+            except Exception:
+                pass
 
     db.commit()
     return {"ingested": len(new_traces) - race_skipped, "skipped_duplicates": skipped + race_skipped}

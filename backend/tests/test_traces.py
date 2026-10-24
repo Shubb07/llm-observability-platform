@@ -124,6 +124,55 @@ def test_ingest_traces_without_client_trace_id_is_not_deduplicated(client, auth_
     assert listed.json()["total"] == 2
 
 
+def test_ingest_success_trace_is_evaluated_and_visible_in_response(client, auth_headers, project):
+    payload = {
+        "traces": [
+            {"model": "gpt-4o", "provider": "openai", "prompt": "hi", "completion": "hello", "latency_ms": 100.0}
+        ]
+    }
+    client.post("/api/v1/traces", json=payload, headers={"X-API-Key": project["api_key"]})
+
+    listed = client.get(f"/api/v1/projects/{project['id']}/traces", headers=auth_headers)
+    trace = listed.json()["items"][0]
+    evaluator_names = {e["evaluator_name"] for e in trace["evaluations"]}
+    assert evaluator_names == {"format_compliance", "safety_keywords"}
+    assert all(e["status"] == "COMPLETED" for e in trace["evaluations"])
+    assert all(e["score"] == 1.0 for e in trace["evaluations"])
+
+
+def test_ingest_error_trace_is_not_evaluated(client, auth_headers, project):
+    # Evaluating an error trace's (non-existent) output doesn't mean
+    # anything - only successful completions are scored.
+    payload = {
+        "traces": [{"model": "gpt-4o", "provider": "openai", "prompt": "hi", "latency_ms": 50.0, "status": "error"}]
+    }
+    client.post("/api/v1/traces", json=payload, headers={"X-API-Key": project["api_key"]})
+
+    listed = client.get(f"/api/v1/projects/{project['id']}/traces", headers=auth_headers)
+    assert listed.json()["items"][0]["evaluations"] == []
+
+
+def test_ingestion_succeeds_even_if_every_evaluator_is_broken(client, auth_headers, project, monkeypatch):
+    import app.evaluation as evaluation_module
+
+    def broken(trace):
+        raise RuntimeError("evaluator exploded")
+
+    monkeypatch.setattr(
+        evaluation_module,
+        "HEURISTIC_EVALUATORS",
+        {"broken_evaluator": broken},
+    )
+
+    payload = {
+        "traces": [{"model": "gpt-4o", "provider": "openai", "prompt": "hi", "completion": "hi", "latency_ms": 1.0}]
+    }
+    response = client.post("/api/v1/traces", json=payload, headers={"X-API-Key": project["api_key"]})
+
+    assert response.status_code == 201
+    assert response.json() == {"ingested": 1, "skipped_duplicates": 0}
+
+
 def test_list_traces_filters_by_status(client, auth_headers, project):
     payload = {
         "traces": [

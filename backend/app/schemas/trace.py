@@ -3,6 +3,18 @@ from datetime import datetime
 from pydantic import BaseModel, Field
 
 
+class EvaluationOut(BaseModel):
+    id: str
+    evaluator_name: str
+    status: str
+    score: float | None
+    reasoning: str | None
+    error_message: str | None
+    created_at: datetime
+
+    model_config = {"from_attributes": True}
+
+
 class TraceIn(BaseModel):
     model: str
     provider: str
@@ -40,6 +52,7 @@ class TraceOut(BaseModel):
     error_message: str | None
     tags: dict
     created_at: datetime
+    evaluations: list[EvaluationOut] = Field(default_factory=list)
 
     model_config = {"from_attributes": True}
 
