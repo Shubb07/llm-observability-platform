@@ -8,7 +8,7 @@ import BrandIcon from "../components/BrandIcon";
 
 export default function RegisterPage() {
   const navigate = useNavigate();
-  const { token, login: storeToken } = useAuth();
+  const { isAuthenticated, onAuthenticated } = useAuth();
 
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
@@ -18,11 +18,10 @@ export default function RegisterPage() {
   const mutation = useMutation({
     mutationFn: async () => {
       await register(email, password);
-      const token = await login(email, password);
-      return token;
+      await login(email, password);
     },
-    onSuccess: (token) => {
-      storeToken(token.access_token);
+    onSuccess: async () => {
+      await onAuthenticated();
       navigate("/projects");
     },
   });
@@ -44,7 +43,7 @@ export default function RegisterPage() {
     mutation.mutate();
   }
 
-  if (token) {
+  if (isAuthenticated) {
     return <Navigate to="/projects" replace />;
   }
 

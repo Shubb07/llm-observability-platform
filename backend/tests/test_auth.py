@@ -59,3 +59,51 @@ def test_register_rejects_password_over_72_bytes(client):
         json={"email": "toolong@example.com", "password": "x" * 73},
     )
     assert response.status_code == 400
+
+
+def test_login_sets_httponly_access_token_cookie(client):
+    payload = {"email": "cookieuser@example.com", "password": "supersecret123"}
+    client.post("/api/v1/auth/register", json=payload)
+
+    response = client.post("/api/v1/auth/login", json=payload)
+
+    assert "access_token" in response.cookies
+    set_cookie_header = response.headers["set-cookie"].lower()
+    assert "httponly" in set_cookie_header
+    assert "samesite=strict" in set_cookie_header
+
+
+def test_me_authenticates_via_cookie_with_no_authorization_header(client):
+    payload = {"email": "cookieauth@example.com", "password": "supersecret123"}
+    client.post("/api/v1/auth/register", json=payload)
+    client.post("/api/v1/auth/login", json=payload)
+
+    # TestClient's cookie jar resends the Set-Cookie from login automatically -
+    # no Authorization header is attached here, same as a real browser
+    # request that relies solely on the HttpOnly cookie.
+    response = client.get("/api/v1/auth/me")
+
+    assert response.status_code == 200
+    assert response.json()["email"] == payload["email"]
+
+
+def test_logout_clears_cookie_and_revokes_cookie_based_session(client):
+    payload = {"email": "logoutuser@example.com", "password": "supersecret123"}
+    client.post("/api/v1/auth/register", json=payload)
+    client.post("/api/v1/auth/login", json=payload)
+
+    logout_response = client.post("/api/v1/auth/logout")
+    assert logout_response.status_code == 204
+
+    me_response = client.get("/api/v1/auth/me")
+    assert me_response.status_code == 401
+
+
+def test_bearer_header_still_works_without_cookie(client, auth_headers, registered_user):
+    # Non-browser callers (curl, the SDK's own token management, /docs) never
+    # get the cookie set in a browser's jar - the Authorization header path
+    # from before this change must keep working on its own.
+    client.cookies.clear()
+    response = client.get("/api/v1/auth/me", headers=auth_headers)
+    assert response.status_code == 200
+    assert response.json()["email"] == registered_user["email"]

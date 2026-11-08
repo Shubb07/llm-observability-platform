@@ -8,15 +8,15 @@ import BrandIcon from "../components/BrandIcon";
 
 export default function LoginPage() {
   const navigate = useNavigate();
-  const { token, login: storeToken } = useAuth();
+  const { isAuthenticated, onAuthenticated } = useAuth();
 
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
 
   const mutation = useMutation({
     mutationFn: () => login(email, password),
-    onSuccess: (token) => {
-      storeToken(token.access_token);
+    onSuccess: async () => {
+      await onAuthenticated();
       navigate("/projects");
     },
   });
@@ -26,7 +26,7 @@ export default function LoginPage() {
     mutation.mutate();
   }
 
-  if (token) {
+  if (isAuthenticated) {
     return <Navigate to="/projects" replace />;
   }
 

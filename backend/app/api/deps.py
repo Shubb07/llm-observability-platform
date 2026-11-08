@@ -1,23 +1,40 @@
-from fastapi import Depends, Header, HTTPException, status
+from fastapi import Cookie, Depends, Header, HTTPException, status
 from fastapi.security import HTTPAuthorizationCredentials, HTTPBearer
 from sqlalchemy.orm import Session
 
 from app.core.db import get_db
-from app.core.security import decode_access_token
+from app.core.security import ACCESS_TOKEN_COOKIE_NAME, decode_access_token
 from app.models.project import Project, ProjectMembership
 from app.models.user import User
 
 bearer_scheme = HTTPBearer(auto_error=False)
 
 
+def _resolve_bearer_token(
+    credentials: HTTPAuthorizationCredentials | None,
+    cookie_token: str | None,
+) -> str | None:
+    """The dashboard authenticates via the HttpOnly access-token cookie
+    (set by auth.py's login/register, unreadable from its own JS - that's
+    the point); a non-browser client (curl, the API docs, a script) instead
+    sends `Authorization: Bearer <token>` directly, since it has no cookie
+    jar a browser would manage for it. Either is accepted; the header wins
+    if a caller somehow sends both."""
+    if credentials is not None:
+        return credentials.credentials
+    return cookie_token
+
+
 def get_current_user(
     credentials: HTTPAuthorizationCredentials | None = Depends(bearer_scheme),
+    access_token_cookie: str | None = Cookie(default=None, alias=ACCESS_TOKEN_COOKIE_NAME),
     db: Session = Depends(get_db),
 ) -> User:
-    if credentials is None:
+    token = _resolve_bearer_token(credentials, access_token_cookie)
+    if token is None:
         raise HTTPException(status.HTTP_401_UNAUTHORIZED, "Missing bearer token")
 
-    user_id = decode_access_token(credentials.credentials)
+    user_id = decode_access_token(token)
     if user_id is None:
         raise HTTPException(status.HTTP_401_UNAUTHORIZED, "Invalid or expired token")
 
@@ -71,6 +88,7 @@ def get_project_by_membership_or_api_key(
     project_id: str,
     x_api_key: str | None = Header(default=None),
     credentials: HTTPAuthorizationCredentials | None = Depends(bearer_scheme),
+    access_token_cookie: str | None = Cookie(default=None, alias=ACCESS_TOKEN_COOKIE_NAME),
     db: Session = Depends(get_db),
 ) -> Project:
     """Read access to one project's data, proven either way: a project API
@@ -96,10 +114,11 @@ def get_project_by_membership_or_api_key(
             raise HTTPException(status.HTTP_403_FORBIDDEN, "API key does not grant access to this project")
         return project
 
-    if credentials is None:
+    token = _resolve_bearer_token(credentials, access_token_cookie)
+    if token is None:
         raise HTTPException(status.HTTP_401_UNAUTHORIZED, "Missing X-API-Key or bearer token")
 
-    user_id = decode_access_token(credentials.credentials)
+    user_id = decode_access_token(token)
     if user_id is None:
         raise HTTPException(status.HTTP_401_UNAUTHORIZED, "Invalid or expired token")
     user = db.get(User, user_id)

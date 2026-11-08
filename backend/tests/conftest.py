@@ -2,6 +2,10 @@ import os
 
 # Must be set before app modules import settings — DATABASE_URL has no default.
 os.environ.setdefault("DATABASE_URL", "sqlite:///:memory:")
+# TestClient talks to the app over plain HTTP ("http://testserver") - a
+# Secure cookie would never round-trip back on the next request in these
+# tests, same as real local HTTP development. See .env.example.
+os.environ.setdefault("COOKIE_SECURE", "false")
 
 import pytest
 from fastapi.testclient import TestClient

@@ -31,6 +31,13 @@ class Settings(BaseSettings):
     # CORS_ALLOWED_ORIGINS (comma-separated) once the dashboard is deployed.
     cors_allowed_origins: str = "http://localhost:5173,http://127.0.0.1:5173"
 
+    # The access-token cookie (see auth.py) is only sent back by the browser
+    # when `Secure` is set and the request is HTTPS. True is correct for
+    # every real deployment; set COOKIE_SECURE=false only for local HTTP
+    # development, where a Secure cookie would silently never reach the
+    # backend at all.
+    cookie_secure: bool = True
+
     @property
     def cors_allowed_origins_list(self) -> list[str]:
         return [origin.strip() for origin in self.cors_allowed_origins.split(",") if origin.strip()]

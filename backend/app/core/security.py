@@ -9,6 +9,11 @@ from app.core.config import settings
 # up front instead of silently truncating them.
 MAX_PASSWORD_BYTES = 72
 
+# Name of the HttpOnly cookie auth.py sets on login/register. A browser
+# client can't read this cookie from JS (that's the point - see deps.py),
+# so it's set and cleared only by the backend, never by the dashboard.
+ACCESS_TOKEN_COOKIE_NAME = "access_token"
+
 
 def hash_password(password: str) -> str:
     encoded = password.encode("utf-8")
