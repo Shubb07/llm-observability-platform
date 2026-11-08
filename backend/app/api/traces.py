@@ -8,10 +8,10 @@ from sqlalchemy import func
 from sqlalchemy.exc import IntegrityError
 from sqlalchemy.orm import Query as SAQuery, Session
 
-from app.api.deps import get_project_by_api_key, get_project_by_membership_or_api_key, get_project_membership
+from app.api.deps import get_project_by_api_key, get_project_by_membership_or_api_key
 from app.core.db import get_db
 from app.evaluation import run_heuristic_evaluators
-from app.models.project import Project, ProjectMembership
+from app.models.project import Project
 from app.models.trace import Trace
 from app.schemas.trace import TraceBatchIn, TraceListOut, TraceOut
 
@@ -145,7 +145,7 @@ def export_traces(
     model: str | None = Query(default=None),
     status_filter: str | None = Query(default=None, alias="status"),
     format: str = Query(default="csv", pattern="^(csv|json)$"),
-    membership: ProjectMembership = Depends(get_project_membership),
+    project: Project = Depends(get_project_by_membership_or_api_key),
     db: Session = Depends(get_db),
 ):
     # Same filters and ordering as list_traces, but no limit/offset - export
@@ -182,7 +182,7 @@ def export_traces(
 def get_trace(
     project_id: str,
     trace_id: str,
-    membership: ProjectMembership = Depends(get_project_membership),
+    project: Project = Depends(get_project_by_membership_or_api_key),
     db: Session = Depends(get_db),
 ):
     trace = db.query(Trace).filter_by(id=trace_id, project_id=project_id).first()
