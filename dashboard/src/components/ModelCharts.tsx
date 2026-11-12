@@ -159,7 +159,7 @@ export default function ModelCharts({ data }: Props) {
                 fontSize={12} 
                 tickLine={false} 
                 axisLine={false}
-                tickFormatter={(val) => `${val}ms`}
+                tickFormatter={(val) => formatLatency(val)}
               />
               <Tooltip content={<CustomTooltip formatter={(val: number) => formatLatency(val)} />} cursor={{ fill: "var(--color-bg-tertiary)", opacity: 0.4 }} />
               <Bar dataKey="p95_latency_ms" name="P95 Latency" radius={[4, 4, 0, 0]}>
