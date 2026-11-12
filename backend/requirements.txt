@@ -9,6 +9,7 @@ python-jose[cryptography]>=3.3
 bcrypt>=4.1
 python-multipart>=0.0.9
 mcp>=2.0
+anthropic>=0.40  # LLM-as-judge evaluators (app/evaluation/llm_judge.py)
 
 # dev / test
 pytest>=8.3
