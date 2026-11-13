@@ -24,6 +24,11 @@ export async function logout(): Promise<void> {
 }
 
 export async function getMe(): Promise<UserOut> {
-  const { data } = await apiClient.get<UserOut>("/api/v1/auth/me");
+  // Called on every app mount (AuthContext) just to check whether a session
+  // exists - a 401 here means "not logged in yet," not "your session
+  // expired," so it must not trigger the global redirect. Without this, an
+  // unauthenticated visit to /login itself 401s, which reloads the page,
+  // which checks again, which 401s again: an infinite reload loop.
+  const { data } = await apiClient.get<UserOut>("/api/v1/auth/me", { skipAuthRedirect: true });
   return data;
 }
