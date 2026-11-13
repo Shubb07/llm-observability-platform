@@ -1,9 +1,3 @@
-databases:
-  - name: llm-observability-db
-    plan: free
-    databaseName: llm_observability
-    user: llm_observability
-
 services:
   - type: web
     name: llm-observability-backend
@@ -13,10 +7,14 @@ services:
     buildCommand: pip install -r requirements.txt
     startCommand: python -m alembic upgrade head && python -m uvicorn app.main:app --host 0.0.0.0 --port $PORT
     envVars:
+      # Render's own free Postgres expires ~30 days after creation (hit this
+      # exact wall on 2026-11-12) - moved to Neon's free tier instead, which
+      # has no calendar expiry, just usage caps (1GB storage, 100 compute-hrs/
+      # month). sync: false means Render won't try to manage this value from
+      # the blueprint - set the real connection string by hand in the
+      # dashboard's Environment tab instead, never commit it here.
       - key: DATABASE_URL
-        fromDatabase:
-          name: llm-observability-db
-          property: connectionString
+        sync: false
       - key: JWT_SECRET
         generateValue: true
       - key: JWT_ALGORITHM
