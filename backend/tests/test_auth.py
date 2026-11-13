@@ -70,7 +70,10 @@ def test_login_sets_httponly_access_token_cookie(client):
     assert "access_token" in response.cookies
     set_cookie_header = response.headers["set-cookie"].lower()
     assert "httponly" in set_cookie_header
-    assert "samesite=strict" in set_cookie_header
+    # Tests run with COOKIE_SECURE=false (see conftest.py), which maps to
+    # samesite=lax - samesite=none requires Secure, which the test client
+    # doesn't set, so a real browser would silently drop that cookie.
+    assert "samesite=lax" in set_cookie_header
 
 
 def test_me_authenticates_via_cookie_with_no_authorization_header(client):

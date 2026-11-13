@@ -30,7 +30,13 @@ def _set_access_token_cookie(response: Response, token: str) -> None:
         max_age=settings.jwt_expire_minutes * 60,
         httponly=True,
         secure=settings.cookie_secure,
-        samesite="strict",
+        # The dashboard and backend are deployed on different onrender.com
+        # subdomains, so this is a cross-site request as far as the browser
+        # is concerned - "strict" (or "lax") never sends the cookie there,
+        # which silently 401s every request. "None" requires Secure, which
+        # is exactly cookie_secure's existing true-in-prod/false-for-local-
+        # http split, so tie samesite to it instead of adding a new setting.
+        samesite="none" if settings.cookie_secure else "lax",
         path="/",
     )
 
@@ -77,7 +83,11 @@ def logout(response: Response) -> None:
     # The dashboard can't delete this cookie itself (HttpOnly), so logging
     # out has to be a real request the backend answers with a clearing
     # Set-Cookie, not a client-side document.cookie write.
-    response.delete_cookie(key=ACCESS_TOKEN_COOKIE_NAME, path="/", samesite="strict")
+    response.delete_cookie(
+        key=ACCESS_TOKEN_COOKIE_NAME,
+        path="/",
+        samesite="none" if settings.cookie_secure else "lax",
+    )
 
 
 @router.get("/me", response_model=UserOut)
