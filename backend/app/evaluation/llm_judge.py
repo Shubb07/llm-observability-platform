@@ -1,15 +1,17 @@
 """LLM-as-judge evaluation - the half of the evaluation engine that
 genuinely needs a model call, unlike heuristics.py's regex-only checks.
 
-Scope of this first piece, deliberately: just `relevance()` as a pure,
-testable function plus a real client to back it. NOT included yet, on
-purpose - each is its own next chunk, not bundled in here:
-  - Wiring this into ingest_traces or any scheduler. An LLM call is too
-    slow to run inline during ingestion (the reason the HLD splits
-    evaluation into a synchronous heuristic phase and an async
-    LLM-as-judge phase in the first place) - this needs a background job
-    queue (APScheduler polling PENDING Evaluation rows), not a direct call
-    from the request path.
+`relevance()` is wired into ingestion (see app/evaluation/__init__.py's
+run_llm_judge_evaluators, called from traces.py's ingest_traces) and runs
+synchronously, inline, right after the heuristic evaluators - a deliberate
+shortcut rather than the HLD's intended design. The HLD calls for this to
+run asynchronously via a background job queue (APScheduler polling PENDING
+Evaluation rows), specifically because an LLM call is too slow and too
+unreliable to run inline during ingestion. Running it inline was chosen
+anyway to get a working, demoable judge evaluator without first building
+that queue; revisit if ingestion volume or latency makes the queue worth it.
+
+Still NOT included, on purpose - its own next chunk, not bundled in here:
   - `faithfulness`, the other LLM-as-judge evaluator the PRD names
     (US-005). Faithfulness means "is the completion grounded in the
     context it was supposed to use" - that requires a context/retrieved-
@@ -17,9 +19,6 @@ purpose - each is its own next chunk, not bundled in here:
     evaluator without something to check faithfulness against would be
     scoring against nothing; that's a schema decision to make deliberately,
     not improvise here.
-  - Settings/env wiring for a real API key - AnthropicJudgeClient takes
-    one as a constructor argument rather than reading it from app
-    settings, since nothing calls it yet.
 """
 
 from __future__ import annotations
@@ -54,8 +53,9 @@ class JudgeClient(Protocol):
 
 class AnthropicJudgeClient:
     """The real client - thin wrapper over the Anthropic SDK. Takes its API
-    key directly rather than reading settings, since nothing constructs
-    this yet outside tests; wiring it up to run for real is a later chunk.
+    key directly rather than reading settings itself; the caller
+    (run_llm_judge_evaluators) is the one that reads settings.anthropic_api_key
+    and passes it in, so this class stays trivially testable with a fake key.
     """
 
     def __init__(self, api_key: str, model: str = "claude-haiku-4-5") -> None:

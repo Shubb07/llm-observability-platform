@@ -38,6 +38,12 @@ class Settings(BaseSettings):
     # backend at all.
     cookie_secure: bool = True
 
+    # LLM-as-judge evaluators (see app/evaluation/llm_judge.py) need a real
+    # model call. No default - left unset, judge evaluators are skipped
+    # entirely rather than failing noisily, so local/test environments
+    # without this key still work.
+    anthropic_api_key: str | None = None
+
     @property
     def cors_allowed_origins_list(self) -> list[str]:
         return [origin.strip() for origin in self.cors_allowed_origins.split(",") if origin.strip()]

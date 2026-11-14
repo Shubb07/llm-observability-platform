@@ -10,7 +10,7 @@ from sqlalchemy.orm import Query as SAQuery, Session
 
 from app.api.deps import get_project_by_api_key, get_project_by_membership_or_api_key
 from app.core.db import get_db
-from app.evaluation import run_heuristic_evaluators
+from app.evaluation import run_heuristic_evaluators, run_llm_judge_evaluators
 from app.models.project import Project
 from app.models.trace import Trace
 from app.schemas.trace import TraceBatchIn, TraceListOut, TraceOut
@@ -109,6 +109,10 @@ def ingest_traces(
             # flushed and will be committed regardless of what happens here.
             try:
                 run_heuristic_evaluators(trace, db)
+            except Exception:
+                pass
+            try:
+                run_llm_judge_evaluators(trace, db)
             except Exception:
                 pass
 

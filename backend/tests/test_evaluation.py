@@ -1,5 +1,5 @@
-from app.evaluation import run_heuristic_evaluators
-from app.evaluation.heuristics import format_compliance, safety_keywords
+from app.evaluation import run_heuristic_evaluators, run_llm_judge_evaluators
+from app.evaluation.heuristics import EvaluationOutcome, format_compliance, safety_keywords
 from app.models.evaluation import EvaluationStatus
 from app.models.trace import Trace
 
@@ -84,3 +84,67 @@ def test_run_heuristic_evaluators_isolates_a_broken_evaluator(db_session, monkey
     assert by_name["format_compliance"].status == EvaluationStatus.FAILED.value
     assert "boom" in by_name["format_compliance"].error_message
     assert by_name["safety_keywords"].status == EvaluationStatus.COMPLETED.value
+
+
+def test_run_llm_judge_evaluators_noop_without_api_key(db_session, monkeypatch):
+    import app.evaluation as evaluation_module
+
+    monkeypatch.setattr(evaluation_module.settings, "anthropic_api_key", None)
+
+    trace = make_trace(completion="a fine answer")
+    db_session.add(trace)
+    db_session.flush()
+
+    results = run_llm_judge_evaluators(trace, db_session)
+
+    assert results == []
+
+
+def test_run_llm_judge_evaluators_writes_a_completed_row(db_session, monkeypatch):
+    import app.evaluation as evaluation_module
+
+    monkeypatch.setattr(evaluation_module.settings, "anthropic_api_key", "fake-key")
+    monkeypatch.setattr(
+        evaluation_module,
+        "AnthropicJudgeClient",
+        lambda api_key: object(),  # relevance() never calls .complete() in this test
+    )
+    monkeypatch.setattr(
+        evaluation_module,
+        "relevance",
+        lambda trace, client: EvaluationOutcome(score=0.9, reasoning="on-topic"),
+    )
+
+    trace = make_trace(completion="a fine answer")
+    db_session.add(trace)
+    db_session.flush()
+
+    results = run_llm_judge_evaluators(trace, db_session)
+    db_session.commit()
+
+    assert len(results) == 1
+    assert results[0].evaluator_name == "relevance"
+    assert results[0].status == EvaluationStatus.COMPLETED.value
+    assert results[0].score == 0.9
+
+
+def test_run_llm_judge_evaluators_records_a_failed_row_on_bad_judge_output(db_session, monkeypatch):
+    import app.evaluation as evaluation_module
+
+    monkeypatch.setattr(evaluation_module.settings, "anthropic_api_key", "fake-key")
+    monkeypatch.setattr(evaluation_module, "AnthropicJudgeClient", lambda api_key: object())
+
+    def broken_relevance(trace, client):
+        raise ValueError("malformed judge response")
+
+    monkeypatch.setattr(evaluation_module, "relevance", broken_relevance)
+
+    trace = make_trace(completion="a fine answer")
+    db_session.add(trace)
+    db_session.flush()
+
+    results = run_llm_judge_evaluators(trace, db_session)
+
+    assert len(results) == 1
+    assert results[0].status == EvaluationStatus.FAILED.value
+    assert "malformed judge response" in results[0].error_message
