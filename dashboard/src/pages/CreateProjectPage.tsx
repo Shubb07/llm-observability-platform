@@ -73,7 +73,7 @@ export default function CreateProjectPage() {
             <button
               type="button"
               className="btn btn-primary"
-              style={{ marginTop: "16px" }}
+              style={{ marginTop: "16px", width: "100%" }}
               onClick={() => navigate("/projects")}
             >
               Done

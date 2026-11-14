@@ -270,8 +270,16 @@ a:hover {
   background: var(--gradient-brand);
   color: #04120f;
   font-weight: 600;
-  width: 100%;
   box-shadow: 0 2px 10px rgba(var(--color-brand-rgb), 0.25);
+}
+
+/* Auth form submit buttons (login/register) are meant to span the card -
+   everywhere else .btn-primary sizes to its content, same as every other
+   .btn variant. Scoped here instead of on .btn-primary itself, which
+   previously stretched any primary button to fill its container (e.g. the
+   Projects page header's "+ New Project" link filling the entire row). */
+.auth-card .btn-primary {
+  width: 100%;
 }
 
 .btn-primary:hover:not(:disabled) {
