@@ -163,6 +163,7 @@ export default function TracesPage() {
                   <th>Latency</th>
                   <th>Tokens</th>
                   <th>Cost</th>
+                  <th>Evaluations</th>
                   <th>Prompt</th>
                 </tr>
               </thead>
@@ -194,11 +195,14 @@ export default function TracesPage() {
                         {formatTokens(t.prompt_tokens + t.completion_tokens)}
                       </td>
                       <td className="text-mono">{formatCost(t.cost)}</td>
+                      <td>
+                        <EvaluationBadges evaluations={t.evaluations} />
+                      </td>
                       <td className="trace-prompt-cell">{t.prompt}</td>
                     </tr>
                     {expandedId === t.id && (
                       <tr className="trace-detail-row">
-                        <td colSpan={7}>
+                        <td colSpan={8}>
                           <div className="trace-detail">
                             <div>
                               <p className="filter-label">Prompt</p>
@@ -210,6 +214,24 @@ export default function TracesPage() {
                               </p>
                               <p>{t.status === "error" ? t.error_message : t.completion}</p>
                             </div>
+                            {t.evaluations.length > 0 && (
+                              <div>
+                                <p className="filter-label">Evaluations</p>
+                                <div style={{ display: "flex", flexDirection: "column", gap: "4px" }}>
+                                  {t.evaluations.map((ev) => (
+                                    <p key={ev.id} style={{ fontSize: "13px" }}>
+                                      <span className="text-mono">{ev.evaluator_name}</span>
+                                      {": "}
+                                      {ev.status === "COMPLETED"
+                                        ? `score ${ev.score?.toFixed(2)} — ${ev.reasoning}`
+                                        : ev.status === "FAILED"
+                                          ? `failed — ${ev.error_message}`
+                                          : ev.status.toLowerCase()}
+                                    </p>
+                                  ))}
+                                </div>
+                              </div>
+                            )}
                             <div className="text-muted" style={{ fontSize: "12px" }}>
                               {t.prompt_tokens} prompt + {t.completion_tokens} completion tokens ·
                               tags {JSON.stringify(t.tags)}
@@ -250,6 +272,37 @@ export default function TracesPage() {
         )}
       </div>
     </>
+  );
+}
+
+function EvaluationBadges({ evaluations }: { evaluations: import("../types/trace").EvaluationOut[] }) {
+  if (evaluations.length === 0) {
+    return <span className="text-muted" style={{ fontSize: "12px" }}>—</span>;
+  }
+  return (
+    <div style={{ display: "flex", gap: "4px", flexWrap: "wrap" }}>
+      {evaluations.map((ev) => {
+        // COMPLETED scores below 1.0 flag something worth looking at (e.g. an
+        // empty completion or a flagged-keyword hit) - color that the same
+        // as a failed evaluator run, not the same as a clean pass.
+        const tone =
+          ev.status === "FAILED" || (ev.status === "COMPLETED" && (ev.score ?? 1) < 1)
+            ? "badge-error"
+            : ev.status === "COMPLETED"
+              ? "badge-success"
+              : "badge-neutral";
+        return (
+          <span
+            key={ev.id}
+            className={`badge ${tone}`}
+            title={ev.status === "COMPLETED" ? ev.reasoning ?? "" : ev.error_message ?? ev.status}
+            style={{ fontSize: "11px" }}
+          >
+            {ev.evaluator_name}
+          </span>
+        );
+      })}
+    </div>
   );
 }
 

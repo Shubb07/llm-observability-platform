@@ -20,6 +20,21 @@ export interface TraceOut {
   error_message: string | null;   // only set when status = "error"
   tags: Record<string, unknown>;  // arbitrary JSON object — e.g. { "env": "prod", "version": "2" }
   created_at: string;             // ISO datetime string
+  evaluations: EvaluationOut[];   // heuristic/LLM-judge scores computed for this trace
+}
+
+/**
+ * One evaluator's result for a trace (e.g. "format_compliance", "safety_keywords").
+ * Mirrors app/schemas/trace.py's EvaluationOut EXACTLY.
+ */
+export interface EvaluationOut {
+  id: string;
+  evaluator_name: string;
+  status: string;            // "PENDING" | "RUNNING" | "COMPLETED" | "FAILED"
+  score: number | null;      // 0.0-1.0, null if the evaluator failed before scoring
+  reasoning: string | null;
+  error_message: string | null;
+  created_at: string;
 }
 
 /**
