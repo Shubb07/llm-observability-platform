@@ -50,6 +50,15 @@ export default function TracesPage() {
     setModel(value);
     setPage(0);
   }
+  // The model dropdown's options come from the analytics window, so widening
+  // or narrowing the time range can drop the currently-selected model from
+  // the list while it's still silently applied as a traces filter. Clear it
+  // whenever the time range changes so the two stay in sync.
+  function updateTimeRange(value: TimeRange) {
+    setTimeRange(value);
+    setModel("");
+    setPage(0);
+  }
 
   const overall = analytics.data?.overall;
   const modelNames = analytics.data?.by_model?.map((m) => m.model) ?? [];
@@ -72,7 +81,7 @@ export default function TracesPage() {
           <select
             className="filter-select"
             value={timeRange}
-            onChange={(e) => setTimeRange(e.target.value as TimeRange)}
+            onChange={(e) => updateTimeRange(e.target.value as TimeRange)}
           >
             <option value="24h">Last 24 hours</option>
             <option value="7d">Last 7 days</option>
