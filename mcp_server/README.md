@@ -16,7 +16,38 @@ stays the single source of truth.
 | `get_analytics(project_id, time_range)` | `GET /api/v1/projects/{id}/analytics` | Request volume, error rate, p50/p95/p99 latency, tokens, cost |
 | `list_traces(project_id, status, model, limit)` | `GET /api/v1/projects/{id}/traces` | Recent traces, optionally filtered |
 
-## Setup
+## Using it remotely, as a new user (no setup)
+
+The backend itself serves this same MCP server directly over HTTP at `{base_url}/mcp`
+(see `app/main.py`) — any new user of the platform can point an MCP client at it with
+nothing to clone or install:
+
+1. Log in, create a project, and copy its API key from the project's **Settings** tab.
+2. Add this to your MCP client's config:
+   ```json
+   {
+     "mcpServers": {
+       "llm-observability": {
+         "type": "http",
+         "url": "https://llm-observability-backend-48ov.onrender.com/mcp",
+         "headers": { "X-API-Key": "your-project-api-key" }
+       }
+     }
+   }
+   ```
+3. Restart the client.
+
+Auth here is the project's own API key as an `X-API-Key` header, not the
+`LLMOBS_MCP_EMAIL`/`LLMOBS_MCP_PASSWORD` login the local script below uses - simpler,
+and it's the same key the SDK already uses to send traces in.
+
+## Using the local script instead (contributing to this repo)
+
+Everything below is for developing against a local backend, not for an end user of the
+platform — prefer the remote endpoint above unless you're actually working on this
+codebase.
+
+### Setup
 
 ```bash
 cd mcp_server
@@ -28,7 +59,7 @@ Authenticates once at startup using `LLMOBS_MCP_EMAIL` / `LLMOBS_MCP_PASSWORD`
 (defaults to the demo account if unset — set real credentials as environment variables
 in whichever client config runs this server, never hardcode them here).
 
-## Using it from Claude Code (this project)
+### From Claude Code (this project)
 
 A `.mcp.json` at the repo root already registers this server for this project. **Start a
 new Claude Code session in this folder** (or restart this one) to pick it up — it'll ask
@@ -36,7 +67,7 @@ you to approve the new MCP server once. After that, the three tools above are ju
 available to ask about directly, e.g. "what's the error rate on the LLM Observability
 Demo project this week?"
 
-## Using it from the standalone Claude Desktop app, or another MCP client
+### From the standalone Claude Desktop app, or another MCP client
 
 Add this block to that app's own MCP server config (for the classic Claude Desktop app,
 that's `claude_desktop_config.json` under its settings — not anything in this repo):
