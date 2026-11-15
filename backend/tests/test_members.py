@@ -83,6 +83,45 @@ def test_add_member_rejects_duplicate(client, auth_headers, project, other_user)
     assert response.status_code == 409
 
 
+def test_add_member_handles_duplicate_race_as_conflict_not_crash(
+    client, auth_headers, project, other_user, monkeypatch
+):
+    # Two requests to add the same user can both pass the "already a member"
+    # check before either commits - force that by making just that check
+    # miss a membership row that's already there, so the endpoint falls
+    # through to the insert and has to rely on the project/user unique
+    # constraint instead. Only the THIRD Query.first() call in this request
+    # is the one we want to defeat (1: require_admin's own membership
+    # lookup, 2: the add_member's User-by-email lookup, 3: the "is this user
+    # already a member" check) - patching every call would also break the
+    # admin-gate check that has to run first.
+    from sqlalchemy.orm import Query
+
+    client.post(
+        f"/api/v1/projects/{project['id']}/members",
+        json={"email": other_user["email"], "role": "MEMBER"},
+        headers=auth_headers,
+    )
+
+    original_first = Query.first
+    call_count = {"n": 0}
+
+    def patched_first(self):
+        call_count["n"] += 1
+        if call_count["n"] == 3:
+            return None
+        return original_first(self)
+
+    monkeypatch.setattr(Query, "first", patched_first)
+
+    response = client.post(
+        f"/api/v1/projects/{project['id']}/members",
+        json={"email": other_user["email"], "role": "MEMBER"},
+        headers=auth_headers,
+    )
+    assert response.status_code == 409
+
+
 def test_admin_can_change_member_role(client, auth_headers, project, other_user):
     client.post(
         f"/api/v1/projects/{project['id']}/members",

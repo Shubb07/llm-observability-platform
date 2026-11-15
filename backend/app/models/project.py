@@ -3,7 +3,7 @@ import uuid
 from datetime import datetime, timezone
 from enum import Enum
 
-from sqlalchemy import DateTime, ForeignKey, String
+from sqlalchemy import DateTime, ForeignKey, String, UniqueConstraint
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 
 from app.core.db import Base
@@ -43,6 +43,14 @@ class Project(Base):
 
 class ProjectMembership(Base):
     __tablename__ = "project_memberships"
+    __table_args__ = (
+        # Backstop for add_member's own check-then-insert: two concurrent
+        # requests adding the same user to the same project can both pass
+        # that check before either commits. Without this constraint that
+        # race silently created two membership rows for the same pair
+        # instead of the second insert failing cleanly.
+        UniqueConstraint("project_id", "user_id", name="uq_membership_project_user"),
+    )
 
     id: Mapped[str] = mapped_column(String(36), primary_key=True, default=lambda: str(uuid.uuid4()))
     project_id: Mapped[str] = mapped_column(ForeignKey("projects.id"), nullable=False)

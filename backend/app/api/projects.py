@@ -1,6 +1,7 @@
 from datetime import datetime, timezone
 
 from fastapi import APIRouter, Depends, HTTPException, status
+from sqlalchemy.exc import IntegrityError
 from sqlalchemy.orm import Session
 
 from app.api.deps import get_current_user, get_project_membership, require_admin
@@ -53,7 +54,12 @@ def list_projects(
 
 
 @router.get("/{project_id}", response_model=ProjectOut)
-def get_project(membership: ProjectMembership = Depends(get_project_membership)):
+def get_project(membership: ProjectMembership = Depends(require_admin)):
+    # ProjectOut carries the live api_key - the same credential ingest_traces
+    # accepts as full write access to the project - so this needs the same
+    # ADMIN gate as rotate-key/archive/add_member, not just "any member."
+    # A non-admin member (MEMBER/VIEWER) seeing this would be able to read
+    # or send traces under a credential their role was never meant to grant.
     return membership.project
 
 
@@ -130,7 +136,15 @@ def add_member(
 
     membership = ProjectMembership(project_id=project_id, user_id=user.id, role=payload.role.value)
     db.add(membership)
-    db.commit()
+    try:
+        db.commit()
+    except IntegrityError:
+        # Two requests can both pass the existence check above before either
+        # commits (the uq_membership_project_user constraint is the actual
+        # backstop) - without this, that race surfaced as an unhandled 500
+        # instead of the same 409 a non-racing duplicate already gets.
+        db.rollback()
+        raise HTTPException(status.HTTP_409_CONFLICT, "User is already a member of this project")
     return MemberOut(user_id=user.id, email=user.email, role=membership.role)
 
 

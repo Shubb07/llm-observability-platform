@@ -119,6 +119,30 @@ def test_unarchive_project_restores_ingestion(client, auth_headers):
     assert ok.status_code == 201
 
 
+def test_get_project_forbidden_for_non_admin_member(client, auth_headers):
+    # GET /projects/{id} returns the live api_key (ProjectOut), the same
+    # credential that grants full trace-ingestion access - a VIEWER or
+    # MEMBER should no more be able to read that than they can rotate it.
+    created = client.post(
+        "/api/v1/projects", json={"name": "Key Should Stay Admin-Only"}, headers=auth_headers
+    ).json()
+
+    viewer_payload = {"email": "key-viewer@example.com", "password": "supersecret123"}
+    client.post("/api/v1/auth/register", json=viewer_payload)
+    viewer_login = client.post("/api/v1/auth/login", json=viewer_payload).json()
+    viewer_headers = {"Authorization": f"Bearer {viewer_login['access_token']}"}
+
+    client.post(
+        f"/api/v1/projects/{created['id']}/members",
+        json={"email": viewer_payload["email"], "role": "VIEWER"},
+        headers=auth_headers,
+    )
+
+    response = client.get(f"/api/v1/projects/{created['id']}", headers=viewer_headers)
+
+    assert response.status_code == 403
+
+
 def test_archive_project_requires_admin(client, auth_headers):
     created = client.post(
         "/api/v1/projects", json={"name": "Not Yours To Archive"}, headers=auth_headers
