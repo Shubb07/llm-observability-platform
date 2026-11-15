@@ -527,6 +527,20 @@ a:hover {
   background-color: var(--color-bg-secondary);
 }
 
+/* Without a max-width, .page-header and .page-body just stretch edge to
+   edge on a wide monitor - on a single-project account that leaves a
+   content-free void next to a lonely card, reading as unfinished rather
+   than minimal. Bounding both to the same width and centering them keeps
+   every page's content column aligned without touching page layout logic
+   in any individual page component. */
+.page-header,
+.page-body {
+  max-width: 1320px;
+  margin-left: auto;
+  margin-right: auto;
+  width: 100%;
+}
+
 .page-header h2 {
   font-size: 18px;
   font-weight: 600;
