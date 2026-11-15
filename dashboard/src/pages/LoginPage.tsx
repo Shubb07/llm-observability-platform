@@ -5,6 +5,7 @@ import { login } from "../api/auth";
 import { useAuth } from "../context/AuthContext";
 import { extractErrorMessage } from "../utils/errorUtils";
 import BrandIcon from "../components/BrandIcon";
+import PasswordInput from "../components/PasswordInput";
 
 export default function LoginPage() {
   const navigate = useNavigate();
@@ -65,13 +66,11 @@ export default function LoginPage() {
               <label className="form-label" htmlFor="login-password">
                 Password
               </label>
-              <input
+              <PasswordInput
                 id="login-password"
-                type="password"
-                className="form-input"
                 placeholder="••••••••"
                 value={password}
-                onChange={(e) => setPassword(e.target.value)}
+                onChange={setPassword}
                 disabled={mutation.isPending}
                 required
                 autoComplete="current-password"

@@ -230,6 +230,43 @@ a:hover {
   cursor: not-allowed;
 }
 
+/* Password field with a show/hide toggle - see components/PasswordInput.tsx.
+   The input keeps its normal .form-input styling; this just reserves room
+   on the right for the toggle button and positions it inside the field. */
+.form-input-wrapper {
+  position: relative;
+}
+
+.form-input-wrapper .form-input {
+  padding-right: 56px;
+}
+
+.form-input-toggle {
+  position: absolute;
+  right: var(--space-3);
+  top: 50%;
+  transform: translateY(-50%);
+  background: none;
+  border: none;
+  cursor: pointer;
+  font-family: var(--font-body);
+  font-size: 12px;
+  font-weight: 500;
+  padding: 0;
+  color: var(--color-text-secondary);
+  line-height: 1;
+  transition: color var(--transition-fast);
+}
+
+.form-input-toggle:hover:not(:disabled) {
+  color: var(--color-text-primary);
+}
+
+.form-input-toggle:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
 .form-error {
   font-size: 13px;
   color: var(--color-error);

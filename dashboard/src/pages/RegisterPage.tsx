@@ -5,6 +5,7 @@ import { register, login } from "../api/auth";
 import { useAuth } from "../context/AuthContext";
 import { extractErrorMessage } from "../utils/errorUtils";
 import BrandIcon from "../components/BrandIcon";
+import PasswordInput from "../components/PasswordInput";
 
 export default function RegisterPage() {
   const navigate = useNavigate();
@@ -82,13 +83,11 @@ export default function RegisterPage() {
               <label className="form-label" htmlFor="register-password">
                 Password
               </label>
-              <input
+              <PasswordInput
                 id="register-password"
-                type="password"
-                className="form-input"
                 placeholder="Min. 8 characters"
                 value={password}
-                onChange={(e) => setPassword(e.target.value)}
+                onChange={setPassword}
                 disabled={mutation.isPending}
                 required
                 autoComplete="new-password"
@@ -99,13 +98,11 @@ export default function RegisterPage() {
               <label className="form-label" htmlFor="register-confirm-password">
                 Confirm password
               </label>
-              <input
+              <PasswordInput
                 id="register-confirm-password"
-                type="password"
-                className="form-input"
                 placeholder="••••••••"
                 value={confirmPassword}
-                onChange={(e) => setConfirmPassword(e.target.value)}
+                onChange={setConfirmPassword}
                 disabled={mutation.isPending}
                 required
                 autoComplete="new-password"
