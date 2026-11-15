@@ -249,6 +249,51 @@ def test_get_single_trace_rejects_api_key_for_a_different_project(client, auth_h
     assert response.status_code == 403
 
 
+def test_delete_trace_removes_it_and_its_evaluations(client, auth_headers, project):
+    payload = {"traces": [{"model": "gpt-4o", "provider": "openai", "prompt": "hi", "completion": "hello", "status": "success", "latency_ms": 10.0}]}
+    client.post("/api/v1/traces", json=payload, headers={"X-API-Key": project["api_key"]})
+    trace_id = client.get(
+        f"/api/v1/projects/{project['id']}/traces", headers=auth_headers
+    ).json()["items"][0]["id"]
+
+    response = client.delete(
+        f"/api/v1/projects/{project['id']}/traces/{trace_id}",
+        headers={"X-API-Key": project["api_key"]},
+    )
+
+    assert response.status_code == 204
+    get_response = client.get(
+        f"/api/v1/projects/{project['id']}/traces/{trace_id}", headers=auth_headers
+    )
+    assert get_response.status_code == 404
+
+
+def test_delete_trace_not_found(client, auth_headers, project):
+    response = client.delete(
+        f"/api/v1/projects/{project['id']}/traces/does-not-exist",
+        headers=auth_headers,
+    )
+    assert response.status_code == 404
+
+
+def test_delete_trace_rejects_api_key_for_a_different_project(client, auth_headers, project):
+    other_project = client.post(
+        "/api/v1/projects", json={"name": "Other Project"}, headers=auth_headers
+    ).json()
+    payload = {"traces": [{"model": "gpt-4o", "provider": "openai", "prompt": "hi", "latency_ms": 10.0}]}
+    client.post("/api/v1/traces", json=payload, headers={"X-API-Key": project["api_key"]})
+    trace_id = client.get(
+        f"/api/v1/projects/{project['id']}/traces", headers=auth_headers
+    ).json()["items"][0]["id"]
+
+    response = client.delete(
+        f"/api/v1/projects/{project['id']}/traces/{trace_id}",
+        headers={"X-API-Key": other_project["api_key"]},
+    )
+
+    assert response.status_code == 403
+
+
 def test_export_traces_csv_contains_all_rows_and_header(client, auth_headers, project):
     payload = {
         "traces": [

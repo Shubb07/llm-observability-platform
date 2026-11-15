@@ -11,6 +11,7 @@ from sqlalchemy.orm import Query as SAQuery, Session
 from app.api.deps import get_project_by_api_key, get_project_by_membership_or_api_key
 from app.core.db import get_db
 from app.evaluation import run_heuristic_evaluators, run_llm_judge_evaluators
+from app.models.evaluation import Evaluation
 from app.models.project import Project
 from app.models.trace import Trace
 from app.schemas.trace import TraceBatchIn, TraceListOut, TraceOut
@@ -193,3 +194,20 @@ def get_trace(
     if trace is None:
         raise HTTPException(http_status.HTTP_404_NOT_FOUND, "Trace not found")
     return trace
+
+
+@router.delete("/projects/{project_id}/traces/{trace_id}", status_code=http_status.HTTP_204_NO_CONTENT)
+def delete_trace(
+    project_id: str,
+    trace_id: str,
+    project: Project = Depends(get_project_by_membership_or_api_key),
+    db: Session = Depends(get_db),
+):
+    trace = db.query(Trace).filter_by(id=trace_id, project_id=project_id).first()
+    if trace is None:
+        raise HTTPException(http_status.HTTP_404_NOT_FOUND, "Trace not found")
+    # evaluations.trace_id has no ON DELETE CASCADE - delete the children
+    # first or the trace delete hits a foreign key violation.
+    db.query(Evaluation).filter_by(trace_id=trace.id).delete()
+    db.delete(trace)
+    db.commit()
