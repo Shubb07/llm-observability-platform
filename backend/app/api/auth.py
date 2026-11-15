@@ -1,4 +1,5 @@
 from fastapi import APIRouter, Depends, HTTPException, Response, status
+from sqlalchemy.exc import IntegrityError
 from sqlalchemy.orm import Session
 
 from app.api.deps import get_current_user
@@ -59,7 +60,16 @@ def register(payload: UserRegister, db: Session = Depends(get_db)):
 
     user = User(email=payload.email, hashed_password=hashed)
     db.add(user)
-    db.commit()
+    try:
+        db.commit()
+    except IntegrityError:
+        # Two requests for the same email can both pass the existence check
+        # above before either commits - the email column's unique constraint
+        # is the actual backstop. Without this, that race surfaced as an
+        # unhandled 500 instead of the same 400 a non-racing duplicate
+        # registration already gets.
+        db.rollback()
+        raise HTTPException(status.HTTP_400_BAD_REQUEST, "Email already registered")
     db.refresh(user)
     return user
 

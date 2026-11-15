@@ -18,6 +18,30 @@ def test_register_duplicate_email_rejected(client):
     assert second.status_code == 400
 
 
+def test_register_duplicate_email_race_returns_400_not_500(client, db_session, monkeypatch):
+    # Two requests for the same email can both pass the "does this email
+    # already exist" check before either commits - simulate that by forcing
+    # the check to miss a row that is already there, so the endpoint falls
+    # through to the insert and has to rely on the unique constraint instead.
+    from sqlalchemy.orm import Query
+
+    from app.core.security import hash_password
+    from app.models.user import User
+
+    db_session.add(User(email="race@example.com", hashed_password=hash_password("whatever123")))
+    db_session.commit()
+
+    monkeypatch.setattr(Query, "first", lambda self: None)
+
+    response = client.post(
+        "/api/v1/auth/register",
+        json={"email": "race@example.com", "password": "supersecret123"},
+    )
+
+    assert response.status_code == 400
+    assert "already registered" in response.json()["detail"].lower()
+
+
 def test_login_returns_token(client):
     payload = {"email": "login@example.com", "password": "supersecret123"}
     client.post("/api/v1/auth/register", json=payload)
