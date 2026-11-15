@@ -96,6 +96,14 @@ def logout(response: Response) -> None:
     response.delete_cookie(
         key=ACCESS_TOKEN_COOKIE_NAME,
         path="/",
+        secure=settings.cookie_secure,
+        # Must match _set_access_token_cookie's attributes exactly - a
+        # SameSite=None cookie needs Secure too, and without it here the
+        # browser rejects this Set-Cookie outright (Chrome silently drops a
+        # None-without-Secure cookie instruction). The deletion never
+        # happened: the original cookie stayed valid, so "signing out" only
+        # looked like it worked until the next reload logged the same
+        # session straight back in.
         samesite="none" if settings.cookie_secure else "lax",
     )
 

@@ -126,6 +126,27 @@ def test_logout_clears_cookie_and_revokes_cookie_based_session(client):
     assert me_response.status_code == 401
 
 
+def test_logout_delete_cookie_matches_secure_attribute_in_production(client, monkeypatch):
+    # Tests run with COOKIE_SECURE=false (samesite=lax), which never exercises
+    # the samesite=none branch logout() shares with login()'s cookie-setting.
+    # A SameSite=None cookie needs Secure too, or a real browser silently
+    # drops the Set-Cookie outright - this asserts the header a real
+    # (cookie_secure=true) deployment would send actually has it, which
+    # login()'s cookie already does. Without secure=... on delete_cookie,
+    # the deletion itself never reached the browser: "signing out" looked
+    # like it worked (redirect to /login) but the original cookie stayed
+    # valid, logging the same session straight back in on the next request.
+    import app.api.auth as auth_module
+
+    monkeypatch.setattr(auth_module.settings, "cookie_secure", True)
+
+    response = client.post("/api/v1/auth/logout")
+
+    set_cookie_header = response.headers["set-cookie"].lower()
+    assert "secure" in set_cookie_header
+    assert "samesite=none" in set_cookie_header
+
+
 def test_bearer_header_still_works_without_cookie(client, auth_headers, registered_user):
     # Non-browser callers (curl, the SDK's own token management, /docs) never
     # get the cookie set in a browser's jar - the Authorization header path
