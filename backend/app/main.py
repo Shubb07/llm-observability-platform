@@ -4,7 +4,7 @@ from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 from mcp.server.transport_security import TransportSecuritySettings
 
-from app.api import analytics, auth, projects, traces
+from app.api import alerts, analytics, auth, projects, traces
 from app.core.config import settings
 from app.mcp_server import mcp
 
@@ -49,6 +49,7 @@ app.include_router(auth.router)
 app.include_router(projects.router)
 app.include_router(traces.router)
 app.include_router(analytics.router)
+app.include_router(alerts.router)
 
 
 @app.get("/health")
