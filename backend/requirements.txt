@@ -10,7 +10,8 @@ bcrypt>=4.1
 python-multipart>=0.0.9
 mcp>=2.0
 anthropic>=0.40  # LLM-as-judge evaluators (app/evaluation/llm_judge.py)
+apscheduler>=3.10  # periodic alert-rule checker (app/workers/alert_checker.py)
+httpx>=0.27  # webhook delivery for alerts; also used by tests' TestClient
 
 # dev / test
 pytest>=8.3
-httpx>=0.27
