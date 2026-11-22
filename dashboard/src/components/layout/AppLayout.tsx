@@ -35,6 +35,9 @@ export default function AppLayout() {
               <NavLink to={`/projects/${projectId}/traces`} className="sidebar-nav-link">
                 🔭 Traces
               </NavLink>
+              <NavLink to={`/projects/${projectId}/alerts`} className="sidebar-nav-link">
+                🔔 Alerts
+              </NavLink>
               <NavLink to={`/projects/${projectId}/settings`} className="sidebar-nav-link">
                 ⚙️ Settings
               </NavLink>
