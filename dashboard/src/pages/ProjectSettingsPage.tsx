@@ -8,6 +8,7 @@ import { formatDate } from "../utils/formatters";
 export default function ProjectSettingsPage() {
   const { projectId = "" } = useParams();
   const [copied, setCopied] = useState(false);
+  const [mcpCopied, setMcpCopied] = useState(false);
 
   const { data: project, isLoading, isError, error } = useQuery({
     queryKey: ["project", projectId],
@@ -19,6 +20,30 @@ export default function ProjectSettingsPage() {
       navigator.clipboard.writeText(project.api_key);
       setCopied(true);
       setTimeout(() => setCopied(false), 2000);
+    }
+  };
+
+  const mcpConfig = project
+    ? JSON.stringify(
+        {
+          mcpServers: {
+            "llm-observability": {
+              type: "http",
+              url: "https://llm-observability-backend-48ov.onrender.com/mcp",
+              headers: { "X-API-Key": project.api_key },
+            },
+          },
+        },
+        null,
+        2
+      )
+    : "";
+
+  const handleMcpCopy = () => {
+    if (mcpConfig) {
+      navigator.clipboard.writeText(mcpConfig);
+      setMcpCopied(true);
+      setTimeout(() => setMcpCopied(false), 2000);
     }
   };
 
@@ -71,6 +96,38 @@ export default function ProjectSettingsPage() {
               >
                 {copied ? "Copied!" : "Copy"}
               </button>
+            </div>
+
+            <div style={{ marginTop: "32px" }}>
+              <h3 style={{ fontSize: "16px", fontWeight: 600, marginBottom: "8px" }}>Connect via MCP</h3>
+              <p className="text-muted" style={{ marginBottom: "16px" }}>
+                Paste this into Claude's <code>.mcp.json</code> (or Claude Code's MCP settings) to let
+                Claude query this project's traces and analytics directly.
+              </p>
+
+              <div style={{ position: "relative" }}>
+                <pre
+                  style={{
+                    margin: 0,
+                    padding: "12px",
+                    backgroundColor: "var(--bg-card)",
+                    border: "1px solid var(--border)",
+                    borderRadius: "6px",
+                    fontFamily: "monospace",
+                    fontSize: "13px",
+                    overflowX: "auto",
+                  }}
+                >
+                  {mcpConfig}
+                </pre>
+                <button
+                  className="btn btn-secondary btn-sm"
+                  style={{ position: "absolute", top: "8px", right: "8px" }}
+                  onClick={handleMcpCopy}
+                >
+                  {mcpCopied ? "Copied!" : "Copy"}
+                </button>
+              </div>
             </div>
 
             <div style={{ marginTop: "32px" }}>
