@@ -6,6 +6,7 @@ import { ALERT_METRICS, ALERT_OPERATORS, ALERT_TIME_RANGES } from "../types/aler
 import type { AlertRuleCreate, AlertRuleOut } from "../types/alert";
 import { extractErrorMessage } from "../utils/errorUtils";
 import { formatRelativeDate } from "../utils/formatters";
+import { BellIcon } from "../components/Icons";
 
 const EMPTY_FORM: AlertRuleCreate = {
   name: "",
@@ -98,7 +99,7 @@ export default function AlertsPage() {
 
         {rules.data && rules.data.length === 0 && (
           <div className="state-container">
-            <div className="state-icon">🔔</div>
+            <div className="state-icon text-muted"><BellIcon size={40} /></div>
             <p className="state-message">No alert rules yet</p>
             <p className="state-hint">
               Create one to get notified when a metric like error rate or latency crosses a threshold you set.

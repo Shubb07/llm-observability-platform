@@ -3,6 +3,7 @@ import { useQuery } from "@tanstack/react-query";
 import { listProjects } from "../api/projects";
 import { extractErrorMessage } from "../utils/errorUtils";
 import { formatRelativeDate } from "../utils/formatters";
+import { WarningIcon, EmptyFolderIcon } from "../components/Icons";
 
 export default function ProjectsPage() {
   const { data: projects, isLoading, isError, error } = useQuery({
@@ -31,7 +32,7 @@ export default function ProjectsPage() {
 
         {isError && (
           <div className="state-container">
-            <div className="state-icon">⚠️</div>
+            <div className="state-icon text-error"><WarningIcon size={40} /></div>
             <p className="state-message">Couldn't load projects</p>
             <p className="state-hint">{extractErrorMessage(error)}</p>
           </div>
@@ -39,7 +40,7 @@ export default function ProjectsPage() {
 
         {projects && projects.length === 0 && (
           <div className="state-container">
-            <div className="state-icon">📋</div>
+            <div className="state-icon text-muted"><EmptyFolderIcon size={40} /></div>
             <p className="state-message">No projects yet</p>
             <p className="state-hint">
               Create a project to get an API key and start sending traces.

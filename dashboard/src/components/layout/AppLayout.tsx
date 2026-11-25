@@ -1,6 +1,7 @@
 import { Outlet, NavLink, useMatch } from "react-router-dom";
 import { useAuth } from "../../context/AuthContext";
 import BrandIcon from "../BrandIcon";
+import { FolderIcon, RadarIcon, BellIcon, GearIcon } from "../Icons";
 import SidebarStatus from "./SidebarStatus";
 
 export default function AppLayout() {
@@ -23,7 +24,7 @@ export default function AppLayout() {
           <p className="sidebar-section-label">Navigation</p>
           <div className="sidebar-nav">
             <NavLink to="/projects" end className="sidebar-nav-link">
-              📋 All Projects
+              <FolderIcon /> All Projects
             </NavLink>
           </div>
         </nav>
@@ -33,13 +34,13 @@ export default function AppLayout() {
             <p className="sidebar-section-label">Current Project</p>
             <div className="sidebar-nav">
               <NavLink to={`/projects/${projectId}/traces`} className="sidebar-nav-link">
-                🔭 Traces
+                <RadarIcon /> Traces
               </NavLink>
               <NavLink to={`/projects/${projectId}/alerts`} className="sidebar-nav-link">
-                🔔 Alerts
+                <BellIcon /> Alerts
               </NavLink>
               <NavLink to={`/projects/${projectId}/settings`} className="sidebar-nav-link">
-                ⚙️ Settings
+                <GearIcon /> Settings
               </NavLink>
             </div>
           </nav>

@@ -4,6 +4,7 @@ import { useQuery } from "@tanstack/react-query";
 import { getProject } from "../api/projects";
 import { extractErrorMessage } from "../utils/errorUtils";
 import { formatDate } from "../utils/formatters";
+import { WarningIcon } from "../components/Icons";
 
 export default function ProjectSettingsPage() {
   const { projectId = "" } = useParams();
@@ -65,7 +66,7 @@ export default function ProjectSettingsPage() {
         
         {isError && (
           <div className="state-container">
-            <div className="state-icon">⚠️</div>
+            <div className="state-icon text-error"><WarningIcon size={40} /></div>
             <p className="state-message">Couldn't load project</p>
             <p className="state-hint">{extractErrorMessage(error)}</p>
           </div>

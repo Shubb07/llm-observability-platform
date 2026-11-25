@@ -12,6 +12,7 @@ import {
   formatTokens,
 } from "../utils/formatters";
 import ModelCharts from "../components/ModelCharts";
+import { RadarIcon } from "../components/Icons";
 
 const PAGE_SIZE = 50;
 
@@ -153,7 +154,7 @@ export default function TracesPage() {
 
         {traces.data && traces.data.items.length === 0 && (
           <div className="state-container">
-            <div className="state-icon">🔭</div>
+            <div className="state-icon text-muted"><RadarIcon size={40} /></div>
             <p className="state-message">No traces match these filters</p>
             <p className="state-hint">
               Send traces with the SDK or run the demo seed script to see data here.
