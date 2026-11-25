@@ -25,8 +25,10 @@ export default function ProjectsPage() {
 
       <div className="page-body">
         {isLoading && (
-          <div className="state-container">
-            <div className="spinner" />
+          <div className="card-grid">
+            <div className="skeleton skeleton-card" />
+            <div className="skeleton skeleton-card" />
+            <div className="skeleton skeleton-card" />
           </div>
         )}
 

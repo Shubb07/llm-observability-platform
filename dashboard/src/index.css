@@ -1428,3 +1428,53 @@ tbody tr.selected {
   outline: 2px solid rgba(var(--color-brand-rgb), 0.5);
   outline-offset: 2px;
 }
+
+/* --------------------------------------------------------------------------
+   Loading skeletons — shown in place of a spinner while data is first
+   fetched, shaped like the content that's about to appear so the page
+   doesn't jump/reflow once it loads.
+   -------------------------------------------------------------------------- */
+.skeleton {
+  position: relative;
+  overflow: hidden;
+  background-color: var(--color-bg-tertiary);
+  border-radius: var(--radius-sm);
+}
+
+.skeleton::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  transform: translateX(-100%);
+  background: linear-gradient(
+    90deg,
+    transparent,
+    rgba(var(--color-brand-rgb), 0.08),
+    transparent
+  );
+  animation: skeleton-shimmer 1.6s ease-in-out infinite;
+}
+
+@keyframes skeleton-shimmer {
+  100% { transform: translateX(100%); }
+}
+
+.skeleton-text {
+  height: 13px;
+  border-radius: 4px;
+}
+
+.skeleton-card {
+  height: 112px;
+  border-radius: var(--radius-md);
+}
+
+.skeleton-tile {
+  height: 78px;
+  border-radius: var(--radius-md);
+}
+
+.skeleton-row {
+  height: 18px;
+  border-radius: 4px;
+}

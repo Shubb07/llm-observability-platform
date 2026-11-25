@@ -59,11 +59,19 @@ export default function ProjectSettingsPage() {
 
       <div className="page-body">
         {isLoading && (
-          <div className="state-container">
-            <div className="spinner" />
+          <div className="settings-section">
+            <div className="skeleton skeleton-text" style={{ width: "80px", marginBottom: "8px" }} />
+            <div className="skeleton skeleton-text" style={{ width: "260px", marginBottom: "16px" }} />
+            <div className="skeleton" style={{ height: "48px", borderRadius: "6px" }} />
+
+            <div style={{ marginTop: "32px" }}>
+              <div className="skeleton skeleton-text" style={{ width: "140px", marginBottom: "8px" }} />
+              <div className="skeleton skeleton-text" style={{ width: "320px", marginBottom: "16px" }} />
+              <div className="skeleton" style={{ height: "160px", borderRadius: "6px" }} />
+            </div>
           </div>
         )}
-        
+
         {isError && (
           <div className="state-container">
             <div className="state-icon text-error"><WarningIcon size={40} /></div>

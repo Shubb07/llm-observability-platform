@@ -92,7 +92,17 @@ export default function AlertsPage() {
       </div>
 
       <div className="page-body">
-        {rules.isLoading && <p className="text-muted">Loading alert rules…</p>}
+        {rules.isLoading && (
+          <div className="table-container" style={{ padding: "var(--space-4)" }}>
+            {Array.from({ length: 3 }).map((_, i) => (
+              <div
+                key={i}
+                className="skeleton skeleton-row"
+                style={{ marginBottom: i === 2 ? 0 : "var(--space-4)" }}
+              />
+            ))}
+          </div>
+        )}
         {rules.isError && (
           <p className="form-error">{extractErrorMessage(rules.error)}</p>
         )}

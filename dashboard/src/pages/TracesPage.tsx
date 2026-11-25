@@ -94,6 +94,14 @@ export default function TracesPage() {
           <p className="form-error">{extractErrorMessage(analytics.error)}</p>
         )}
 
+        {analytics.isLoading && (
+          <div className="metric-grid">
+            {Array.from({ length: 7 }).map((_, i) => (
+              <div key={i} className="skeleton skeleton-tile" />
+            ))}
+          </div>
+        )}
+
         {overall && (
           <div className="metric-grid">
             <Metric label="Requests" value={formatTokens(overall.request_volume)} />
@@ -147,7 +155,17 @@ export default function TracesPage() {
           )}
         </div>
 
-        {traces.isLoading && <p className="text-muted">Loading traces…</p>}
+        {traces.isLoading && (
+          <div className="table-container" style={{ padding: "var(--space-4)" }}>
+            {Array.from({ length: 6 }).map((_, i) => (
+              <div
+                key={i}
+                className="skeleton skeleton-row"
+                style={{ marginBottom: i === 5 ? 0 : "var(--space-4)" }}
+              />
+            ))}
+          </div>
+        )}
         {traces.isError && (
           <p className="form-error">{extractErrorMessage(traces.error)}</p>
         )}
