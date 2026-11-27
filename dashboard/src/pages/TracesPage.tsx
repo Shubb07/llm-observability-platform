@@ -232,35 +232,48 @@ export default function TracesPage() {
                       <tr className="trace-detail-row">
                         <td colSpan={8}>
                           <div className="trace-detail">
-                            <div>
-                              <p className="filter-label">Prompt</p>
-                              <p>{t.prompt}</p>
+                            <div className="trace-detail-grid">
+                              <div>
+                                <p className="trace-field-label">Prompt</p>
+                                <div className="trace-text-block">{t.prompt}</div>
+                              </div>
+                              <div>
+                                <p className="trace-field-label">
+                                  {t.status === "error" ? "Error" : "Completion"}
+                                </p>
+                                <div
+                                  className={
+                                    t.status === "error"
+                                      ? "trace-text-block trace-text-block-error"
+                                      : "trace-text-block"
+                                  }
+                                >
+                                  {t.status === "error" ? t.error_message : t.completion}
+                                </div>
+                              </div>
                             </div>
-                            <div>
-                              <p className="filter-label">
-                                {t.status === "error" ? "Error" : "Completion"}
-                              </p>
-                              <p>{t.status === "error" ? t.error_message : t.completion}</p>
-                            </div>
+
                             {t.evaluations.length > 0 && (
                               <div>
-                                <p className="filter-label">Evaluations</p>
-                                <div style={{ display: "flex", flexDirection: "column", gap: "4px" }}>
+                                <p className="trace-field-label">Evaluations</p>
+                                <div className="trace-eval-list">
                                   {t.evaluations.map((ev) => (
-                                    <p key={ev.id} style={{ fontSize: "13px" }}>
+                                    <div key={ev.id} className="trace-eval-item">
                                       <span className="text-mono">{ev.evaluator_name}</span>
-                                      {": "}
-                                      {ev.status === "COMPLETED"
-                                        ? `score ${ev.score?.toFixed(2)} — ${ev.reasoning}`
-                                        : ev.status === "FAILED"
-                                          ? `failed — ${ev.error_message}`
-                                          : ev.status.toLowerCase()}
-                                    </p>
+                                      <span className="text-muted">
+                                        {ev.status === "COMPLETED"
+                                          ? `score ${ev.score?.toFixed(2)} — ${ev.reasoning}`
+                                          : ev.status === "FAILED"
+                                            ? `failed — ${ev.error_message}`
+                                            : ev.status.toLowerCase()}
+                                      </span>
+                                    </div>
                                   ))}
                                 </div>
                               </div>
                             )}
-                            <div className="text-muted" style={{ fontSize: "12px" }}>
+
+                            <div className="trace-detail-footer text-muted">
                               {t.prompt_tokens} prompt + {t.completion_tokens} completion tokens ·
                               tags {JSON.stringify(t.tags)}
                             </div>
