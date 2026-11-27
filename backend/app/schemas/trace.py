@@ -20,6 +20,9 @@ class TraceIn(BaseModel):
     provider: str
     prompt: str
     completion: str | None = None
+    # Retrieved documents/context for RAG-style calls, used by the
+    # faithfulness evaluator. Optional - most traces won't set it.
+    context: str | None = None
     prompt_tokens: int = 0
     completion_tokens: int = 0
     latency_ms: float
@@ -44,6 +47,7 @@ class TraceOut(BaseModel):
     provider: str
     prompt: str
     completion: str | None
+    context: str | None
     prompt_tokens: int
     completion_tokens: int
     latency_ms: float

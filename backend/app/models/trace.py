@@ -26,6 +26,10 @@ class Trace(Base):
 
     prompt: Mapped[str] = mapped_column(Text, nullable=False)
     completion: Mapped[str | None] = mapped_column(Text, nullable=True)
+    # Retrieved documents/context for RAG-style calls, used by the
+    # faithfulness evaluator to check groundedness. Optional - most traces
+    # (non-RAG calls) have nothing here.
+    context: Mapped[str | None] = mapped_column(Text, nullable=True)
 
     prompt_tokens: Mapped[int] = mapped_column(Integer, default=0)
     completion_tokens: Mapped[int] = mapped_column(Integer, default=0)

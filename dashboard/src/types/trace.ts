@@ -12,6 +12,7 @@ export interface TraceOut {
   provider: string;               // e.g. "openai", "anthropic"
   prompt: string;
   completion: string | null;      // null if the call errored before a response
+  context: string | null;         // retrieved documents/context for RAG-style calls, used by the faithfulness evaluator
   prompt_tokens: number;
   completion_tokens: number;
   latency_ms: number;             // milliseconds as a float

@@ -107,7 +107,7 @@ def test_run_llm_judge_evaluators_writes_a_completed_row(db_session, monkeypatch
     monkeypatch.setattr(
         evaluation_module,
         "AnthropicJudgeClient",
-        lambda api_key: object(),  # relevance() never calls .complete() in this test
+        lambda api_key: object(),  # relevance()/faithfulness() never call .complete() in this test
     )
     monkeypatch.setattr(
         evaluation_module,
@@ -115,6 +115,8 @@ def test_run_llm_judge_evaluators_writes_a_completed_row(db_session, monkeypatch
         lambda trace, client: EvaluationOutcome(score=0.9, reasoning="on-topic"),
     )
 
+    # No context on this trace, so faithfulness() returns None (skipped) -
+    # only relevance's row should show up.
     trace = make_trace(completion="a fine answer")
     db_session.add(trace)
     db_session.flush()
@@ -148,3 +150,84 @@ def test_run_llm_judge_evaluators_records_a_failed_row_on_bad_judge_output(db_se
     assert len(results) == 1
     assert results[0].status == EvaluationStatus.FAILED.value
     assert "malformed judge response" in results[0].error_message
+
+
+def test_run_llm_judge_evaluators_writes_a_faithfulness_row_when_context_present(db_session, monkeypatch):
+    import app.evaluation as evaluation_module
+
+    monkeypatch.setattr(evaluation_module.settings, "anthropic_api_key", "fake-key")
+    monkeypatch.setattr(evaluation_module, "AnthropicJudgeClient", lambda api_key: object())
+    monkeypatch.setattr(
+        evaluation_module,
+        "relevance",
+        lambda trace, client: EvaluationOutcome(score=0.9, reasoning="on-topic"),
+    )
+    monkeypatch.setattr(
+        evaluation_module,
+        "faithfulness",
+        lambda trace, client: EvaluationOutcome(score=0.7, reasoning="mostly grounded"),
+    )
+
+    trace = make_trace(completion="a fine answer", context="some retrieved context")
+    db_session.add(trace)
+    db_session.flush()
+
+    results = run_llm_judge_evaluators(trace, db_session)
+    db_session.commit()
+
+    by_name = {r.evaluator_name: r for r in results}
+    assert set(by_name) == {"relevance", "faithfulness"}
+    assert by_name["faithfulness"].status == EvaluationStatus.COMPLETED.value
+    assert by_name["faithfulness"].score == 0.7
+
+
+def test_run_llm_judge_evaluators_skips_faithfulness_without_context(db_session, monkeypatch):
+    import app.evaluation as evaluation_module
+
+    monkeypatch.setattr(evaluation_module.settings, "anthropic_api_key", "fake-key")
+    monkeypatch.setattr(evaluation_module, "AnthropicJudgeClient", lambda api_key: object())
+    monkeypatch.setattr(
+        evaluation_module,
+        "relevance",
+        lambda trace, client: EvaluationOutcome(score=0.9, reasoning="on-topic"),
+    )
+    # The real faithfulness() returns None when trace.context is falsy -
+    # mirror that here rather than monkeypatching it away, since the point
+    # of this test is that no row gets written for it at all.
+    monkeypatch.setattr(evaluation_module, "faithfulness", lambda trace, client: None)
+
+    trace = make_trace(completion="a fine answer", context=None)
+    db_session.add(trace)
+    db_session.flush()
+
+    results = run_llm_judge_evaluators(trace, db_session)
+    db_session.commit()
+
+    assert {r.evaluator_name for r in results} == {"relevance"}
+
+
+def test_run_llm_judge_evaluators_records_a_failed_row_on_bad_faithfulness_output(db_session, monkeypatch):
+    import app.evaluation as evaluation_module
+
+    monkeypatch.setattr(evaluation_module.settings, "anthropic_api_key", "fake-key")
+    monkeypatch.setattr(evaluation_module, "AnthropicJudgeClient", lambda api_key: object())
+    monkeypatch.setattr(
+        evaluation_module,
+        "relevance",
+        lambda trace, client: EvaluationOutcome(score=0.9, reasoning="on-topic"),
+    )
+
+    def broken_faithfulness(trace, client):
+        raise ValueError("malformed judge response")
+
+    monkeypatch.setattr(evaluation_module, "faithfulness", broken_faithfulness)
+
+    trace = make_trace(completion="a fine answer", context="some retrieved context")
+    db_session.add(trace)
+    db_session.flush()
+
+    results = run_llm_judge_evaluators(trace, db_session)
+
+    by_name = {r.evaluator_name: r for r in results}
+    assert by_name["faithfulness"].status == EvaluationStatus.FAILED.value
+    assert "malformed judge response" in by_name["faithfulness"].error_message

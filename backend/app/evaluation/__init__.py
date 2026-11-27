@@ -22,7 +22,7 @@ from sqlalchemy.orm import Session
 
 from app.core.config import settings
 from app.evaluation.heuristics import HEURISTIC_EVALUATORS
-from app.evaluation.llm_judge import AnthropicJudgeClient, relevance
+from app.evaluation.llm_judge import AnthropicJudgeClient, faithfulness, relevance
 from app.models.evaluation import Evaluation, EvaluationStatus
 from app.models.trace import Trace
 
@@ -60,6 +60,8 @@ def run_llm_judge_evaluators(trace: Trace, db: Session) -> list[Evaluation]:
         return []
 
     client = AnthropicJudgeClient(api_key=settings.anthropic_api_key)
+    results: list[Evaluation] = []
+
     try:
         outcome = relevance(trace, client)
         evaluation = Evaluation(
@@ -77,4 +79,28 @@ def run_llm_judge_evaluators(trace: Trace, db: Session) -> list[Evaluation]:
             error_message=str(exc),
         )
     db.add(evaluation)
-    return [evaluation]
+    results.append(evaluation)
+
+    try:
+        outcome = faithfulness(trace, client)
+        if outcome is not None:
+            evaluation = Evaluation(
+                trace_id=trace.id,
+                evaluator_name="faithfulness",
+                status=EvaluationStatus.COMPLETED.value,
+                score=outcome.score,
+                reasoning=outcome.reasoning,
+            )
+            db.add(evaluation)
+            results.append(evaluation)
+    except Exception as exc:
+        evaluation = Evaluation(
+            trace_id=trace.id,
+            evaluator_name="faithfulness",
+            status=EvaluationStatus.FAILED.value,
+            error_message=str(exc),
+        )
+        db.add(evaluation)
+        results.append(evaluation)
+
+    return results
